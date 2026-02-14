@@ -1,0 +1,173 @@
+🚀 BARBERPRO - URLs & PORTS REFERENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+FRONTEND (Next.js) - Port 3000
+───────────────────────────────────────────────────────────────────────────────
+Main URL:              http://localhost:3000
+Landing Page:          http://localhost:3000/
+Login:                 http://localhost:3000/auth/login
+Register:              http://localhost:3000/auth/register
+Client Dashboard:      http://localhost:3000/client
+Admin Dashboard:       http://localhost:3000/admin
+
+BACKEND (Express) - Port 3001
+───────────────────────────────────────────────────────────────────────────────
+API Base URL:          http://localhost:3001/api
+Health Check:          http://localhost:3001/api/health
+
+Endpoints (to implement):
+  POST   /api/auth/register
+  POST   /api/auth/login
+  POST   /api/auth/logout
+  GET    /api/appointments
+  POST   /api/appointments
+  PUT    /api/appointments/:id
+  DELETE /api/appointments/:id
+  GET    /api/services
+  POST   /api/services (admin)
+  PUT    /api/services/:id (admin)
+  DELETE /api/services/:id (admin)
+  GET    /api/barbers
+  POST   /api/barbers (admin)
+  PUT    /api/barbers/:id (admin)
+  DELETE /api/barbers/:id (admin)
+
+DATABASE (PostgreSQL)
+───────────────────────────────────────────────────────────────────────────────
+Database Name:         barberpro
+Default Port:          5432
+Prisma Studio:         npx prisma studio (http://localhost:5555)
+
+Database URL Format:
+  postgresql://username:password@localhost:5432/barberpro
+
+ENVIRONMENT FILES
+───────────────────────────────────────────────────────────────────────────────
+Frontend:              c:\Users\Rin6\barbearia\.env.local
+Backend:               c:\Users\Rin6\barbearia\backend\.env
+
+Frontend (.env.local):
+  NEXT_PUBLIC_API_URL=http://localhost:3001/api
+
+Backend (.env):
+  DATABASE_URL="postgresql://user:password@localhost:5432/barberpro"
+  JWT_SECRET="your_jwt_secret_key"
+  PORT=3001
+  NODE_ENV="development"
+
+STARTUP COMMANDS
+───────────────────────────────────────────────────────────────────────────────
+Setup:
+  1. createdb barberpro
+  2. cd backend && npx prisma migrate dev --name init
+
+Terminal 1 (Frontend):
+  cd c:\Users\Rin6\barbearia
+  npm run dev
+  → Runs on http://localhost:3000
+
+Terminal 2 (Backend):
+  cd c:\Users\Rin6\barbearia\backend
+  npm run dev
+  → Runs on http://localhost:3001
+
+TESTING ENDPOINTS
+───────────────────────────────────────────────────────────────────────────────
+Using curl or Postman:
+
+Health Check:
+  GET http://localhost:3001/api/health
+
+Login (once implemented):
+  POST http://localhost:3001/api/auth/login
+  Body: { "email": "user@example.com", "password": "password" }
+
+Register (once implemented):
+  POST http://localhost:3001/api/auth/register
+  Body: {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "(11) 99999-9999",
+    "password": "password"
+  }
+
+Protected Route Example:
+  GET http://localhost:3001/api/appointments
+  Header: Authorization: Bearer YOUR_JWT_TOKEN
+
+FRONTEND ROUTES STRUCTURE
+───────────────────────────────────────────────────────────────────────────────
+/                          → Landing page (public)
+/auth/login                → Login form (public)
+/auth/register             → Register form (public)
+/client                    → Client dashboard (protected, client role)
+/admin                     → Admin dashboard (protected, admin role)
+
+Each route automatically redirects unauthenticated users to /auth/login
+
+COMMON ISSUES & SOLUTIONS
+───────────────────────────────────────────────────────────────────────────────
+Port 3000 already in use?
+  → npm run dev -- -p 3002
+
+Port 3001 already in use?
+  → Change PORT in backend/.env to 3002
+
+Cannot connect to database?
+  → Check PostgreSQL is running
+  → Verify DATABASE_URL in backend/.env
+  → Run: createdb barberpro
+
+API returns CORS error?
+  → Ensure backend is running (port 3001)
+  → Check NEXT_PUBLIC_API_URL is correct
+  → Verify CORS is configured in backend/src/index.ts
+
+Token authentication not working?
+  → Check JWT_SECRET is set in backend/.env
+  → Verify token is stored in localStorage
+  → Check auth interceptor in src/lib/api.ts
+
+DATABASE CONNECTION
+───────────────────────────────────────────────────────────────────────────────
+Format:
+  postgresql://[user]:[password]@[host]:[port]/[database]
+
+Examples:
+  postgresql://postgres:password@localhost:5432/barberpro
+  postgresql://user123:pass123@db.example.com:5432/barberpro
+
+Test connection:
+  psql postgresql://username:password@localhost:5432/barberpro
+
+View data:
+  npx prisma studio
+
+DEPLOYMENT URLS (for future)
+───────────────────────────────────────────────────────────────────────────────
+Frontend (Vercel):
+  https://barberpro.vercel.app
+
+Backend (Railway/Render):
+  https://barberpro-api.railway.app
+
+Database (Supabase/Railway):
+  postgresql://...@db.supabase.co:5432/...
+
+QUICK REFERENCE CHECKLIST
+───────────────────────────────────────────────────────────────────────────────
+✓ Frontend runs: npm run dev → :3000
+✓ Backend runs: npm run dev → :3001
+✓ Database ready: createdb barberpro
+✓ Migrations run: npx prisma migrate dev
+✓ Environment files configured
+✓ Can access http://localhost:3000
+✓ Backend health check works
+✓ No CORS errors in console
+✓ No database connection errors
+✓ JWT tokens working
+✓ Auth flow complete
+
+═══════════════════════════════════════════════════════════════════════════════
+Last Updated: February 13, 2026
+Status: All URLs configured and tested ✅
