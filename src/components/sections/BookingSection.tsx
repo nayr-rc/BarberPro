@@ -2,7 +2,7 @@
 
 import { useBookingStore } from '@/hooks/useBookingStore';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from "@/lib/api";
 
 interface Drink {
     id: string;
@@ -10,8 +10,11 @@ interface Drink {
     price: number;
 }
 
+import { useSearchParams } from 'next/navigation';
+
 export default function BookingSection() {
     const { selectedService, setSelectedService } = useBookingStore();
+    const searchParams = useSearchParams();
 
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
@@ -26,11 +29,25 @@ export default function BookingSection() {
     const [appointmentId, setAppointmentId] = useState<string | null>(null);
 
     useEffect(() => {
+        // Handle search params from shared calendar link
+        const barberIdParam = searchParams.get('barberId');
+        const startParam = searchParams.get('start');
+
+        if (startParam) {
+            try {
+                const startDate = new Date(startParam);
+                setDate(startDate.toISOString().split('T')[0]);
+                setTime(startDate.toTimeString().split(' ')[0].substring(0, 5));
+            } catch (e) {
+                console.error("Erro ao processar data do link:", e);
+            }
+        }
+
         // Fetch active drinks
-        axios.get('http://localhost:3001/api/drinks')
+        apiClient.get('/drinks')
             .then(res => setDrinks(res.data))
             .catch(err => console.error("Could not fetch drinks", err));
-    }, []);
+    }, [searchParams]);
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
@@ -59,7 +76,7 @@ export default function BookingSection() {
         const drinkIds = selectedDrink ? [selectedDrink] : [];
 
         try {
-            const res = await axios.post('http://localhost:3001/api/appointments', {
+            const res = await apiClient.post('/appointments', {
                 guestName: name,
                 guestPhone: phone,
                 barberId: dummyBarberId,
@@ -82,7 +99,7 @@ export default function BookingSection() {
     const handlePayment = async () => {
         try {
             if (appointmentId) {
-                await axios.post(`http://localhost:3001/api/appointments/${appointmentId}/pay`);
+                await apiClient.post(`/appointments/${appointmentId}/pay`);
             }
             alert('Pagamento aprovado! Agendamento confirmado com sucesso.');
             setIsPaymentModalOpen(false);

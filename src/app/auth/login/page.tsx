@@ -30,7 +30,11 @@ export default function LoginPage() {
       login(user, token);
       localStorage.setItem("token", token);
 
-      router.push("/admin");
+      if (user.role === "barber") {
+        router.push("/barbeiro/dashboard");
+      } else {
+        router.push("/admin");
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || "Erro ao fazer login");
     } finally {

@@ -3,7 +3,7 @@
 import { useAuthStore } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import apiClient from "@/lib/api";
 
 interface Drink {
     id: string;
@@ -29,7 +29,7 @@ export default function AdminDrinks() {
 
     const fetchDrinks = async () => {
         try {
-            const { data } = await axios.get("http://localhost:3001/api/drinks");
+            const { data } = await apiClient.get("/drinks");
             setDrinks(data);
         } catch (error) {
             console.error("Erro ao buscar bebidas", error);
@@ -40,11 +40,9 @@ export default function AdminDrinks() {
         e.preventDefault();
         try {
             if (!name || !price) return;
-            await axios.post("http://localhost:3001/api/drinks", {
+            await apiClient.post("/drinks", {
                 name,
                 price: Number(price),
-            }, {
-                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
             });
             setName("");
             setPrice("");
@@ -56,7 +54,7 @@ export default function AdminDrinks() {
 
     const toggleDrink = async (id: string, currentActive: boolean) => {
         try {
-            await axios.put(`http://localhost:3001/api/drinks/${id}`, {
+            await apiClient.patch(`/drinks/${id}`, {
                 active: !currentActive,
             });
             fetchDrinks();
