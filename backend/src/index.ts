@@ -76,10 +76,16 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
+import drinksRouter from "./routes/drinks";
+import appointmentsRouter from "./routes/appointments";
+
 // Logout
 app.post("/api/auth/logout", (req, res) => {
   res.json({ message: "Logout realizado" });
 });
+
+app.use("/api/drinks", drinksRouter);
+app.use("/api/appointments", appointmentsRouter);
 
 app.listen(port, () => {
   console.log(`🚀 BarberPro API running on http://localhost:${port}`);

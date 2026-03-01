@@ -11,16 +11,18 @@ import Footer from "@/components/sections/Footer";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-barber-black text-white selection:bg-barber-gold selection:text-black">
+    <main className="min-h-screen bg-barber-black text-white selection:bg-barber-gold selection:text-black flex flex-col items-center overflow-x-hidden">
       <Navbar />
-      <Hero />
-      <About />
-      <Services />
-      <Team />
-      <Gallery />
-      <Testimonials />
-      <BookingSection />
-      <Footer />
+      <div className="w-full">
+        <Hero />
+        <About />
+        <Services />
+        <Team />
+        <Gallery />
+        <Testimonials />
+        <BookingSection />
+        <Footer />
+      </div>
     </main>
   );
 }

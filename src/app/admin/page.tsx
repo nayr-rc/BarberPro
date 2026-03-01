@@ -92,10 +92,10 @@ export default function AdminDashboard() {
             </div>
 
             <div className="bg-barber-dark border border-barber-brown rounded-lg p-6 hover:border-barber-accent transition">
-              <h3 className="text-xl font-bold text-barber-beige mb-2">📊 Relatórios</h3>
-              <p className="text-barber-accent mb-4">Visualize métricas e análises</p>
-              <button className="bg-barber-accent text-barber-black font-bold px-4 py-2 rounded hover:bg-barber-brown transition w-full">
-                Ver Relatórios
+              <h3 className="text-xl font-bold text-barber-beige mb-2">🍹 Bebidas</h3>
+              <p className="text-barber-accent mb-4">Gerencie as bebidas disponíveis</p>
+              <button onClick={() => router.push("/admin/drinks")} className="bg-barber-accent text-barber-black font-bold px-4 py-2 rounded hover:bg-barber-brown transition w-full">
+                Gerenciar Bebidas
               </button>
             </div>
 

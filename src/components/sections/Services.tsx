@@ -1,7 +1,12 @@
 
+'use client';
+
 import { Scissors, Armchair, PenTool, CheckCircle, Clock, Star } from 'lucide-react';
+import { useBookingStore } from '@/hooks/useBookingStore';
 
 export default function Services() {
+    const setSelectedService = useBookingStore((state) => state.setSelectedService);
+
     const services = [
         { title: "CORTE CLÁSSICO", price: "R$ 45", icon: Scissors, desc: "Corte tradicional com tesoura e máquina." },
         { title: "BARBA PREMIUM", price: "R$ 35", icon: Armchair, desc: "Toalha quente, navalha e hidratação." },
@@ -11,38 +16,50 @@ export default function Services() {
         { title: "TINTURA", price: "R$ 50", icon: Clock, desc: "Cobertura de brancos ou estilo platinado." }
     ];
 
+    const handleBooking = (serviceName: string, servicePrice: string) => {
+        setSelectedService(`${serviceName} - ${servicePrice}`);
+        const bookingSection = document.getElementById('booking');
+        if (bookingSection) {
+            bookingSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
     return (
-        <section id="services" className="py-24 bg-barber-black relative">
-            <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
+        <section id="services" className="py-24 bg-barber-black relative flex flex-col items-center">
+            <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none hidden lg:block">
                 <Scissors size={400} strokeWidth={0.5} />
             </div>
 
-            <div className="max-w-7xl mx-auto px-6">
-                <div className="flex flex-col md:flex-row justify-between items-end mb-16 border-b border-white/5 pb-8">
-                    <div>
+            <div className="max-w-7xl w-full mx-auto px-6">
+                <div className="flex flex-col md:flex-row justify-between items-center md:items-end mb-16 border-b border-white/5 pb-8 text-center md:text-left">
+                    <div className="flex flex-col items-center md:items-start">
                         <span className="text-barber-gold font-display text-xl mb-2 block">02</span>
-                        <h2 className="text-4xl md:text-5xl font-heading text-white">NOSSOS SERVIÇOS</h2>
+                        <h2 className="text-4xl md:text-5xl font-heading text-white tracking-wider">NOSSOS SERVIÇOS</h2>
                     </div>
-                    <p className="text-gray-400 max-w-md text-right mt-4 md:mt-0 font-light">
+                    <p className="text-gray-400 max-w-md text-center md:text-right mt-6 md:mt-0 font-light italic leading-relaxed">
                         Especialistas em cortes clássicos e modernos. Utilizamos apenas os melhores produtos do mercado.
                     </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {services.map((service, index) => (
-                        <div key={index} className="group p-8 bg-barber-gray border border-white/5 hover:border-barber-gold transition-all duration-300 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <div
+                            key={index}
+                            onClick={() => handleBooking(service.title, service.price)}
+                            className="group p-8 bg-barber-gray border border-white/5 hover:border-barber-gold transition-all duration-500 relative overflow-hidden flex flex-col items-center text-center md:items-start md:text-left cursor-pointer"
+                        >
+                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                                 <service.icon size={80} />
                             </div>
 
                             <service.icon className="w-10 h-10 text-barber-gold mb-6" />
 
-                            <h3 className="text-xl font-bold text-white mb-2">{service.title}</h3>
-                            <p className="text-gray-400 text-sm mb-6">{service.desc}</p>
+                            <h3 className="text-xl font-bold text-white mb-2 tracking-wide uppercase">{service.title}</h3>
+                            <p className="text-gray-400 text-sm mb-8 leading-relaxed font-light">{service.desc}</p>
 
-                            <div className="flex justify-between items-center border-t border-white/5 pt-4">
-                                <span className="text-2xl font-display text-barber-gold">{service.price}</span>
-                                <span className="text-xs text-gray-500 uppercase tracking-wider">Agende agora</span>
+                            <div className="mt-auto w-full flex justify-between items-center border-t border-white/5 pt-6">
+                                <span className="text-2xl font-display text-barber-gold font-bold">{service.price}</span>
+                                <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold group-hover:text-white transition-colors">Agendar</span>
                             </div>
                         </div>
                     ))}
