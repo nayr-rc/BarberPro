@@ -176,15 +176,8 @@ export default function BookingSection() {
                 </div>
 
                 {/* Visual / Info */}
-                <div className="flex flex-col gap-8 w-full">
-                    <div className="bg-[url('https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center h-[300px] md:h-[500px] w-full rounded-lg filter grayscale hover:grayscale-0 transition-all duration-1000 opacity-80 shadow-2xl border border-white/5"></div>
-                    <div className="text-center lg:text-right border-r-0 lg:border-r-4 border-barber-gold pr-0 lg:pr-8 py-2">
-                        <h4 className="text-barber-gold font-bold text-xl mb-4 tracking-widest uppercase font-heading">Horário de Funcionamento</h4>
-                        <div className="space-y-2 text-gray-400 font-light">
-                            <p className="flex justify-between lg:justify-end gap-4 uppercase text-xs tracking-widest border-b border-white/5 pb-2"><span>Segunda - Sexta</span> <span>09:00 - 20:00</span></p>
-                            <p className="flex justify-between lg:justify-end gap-4 uppercase text-xs tracking-widest"><span>Sábado</span> <span>09:00 - 18:00</span></p>
-                        </div>
-                    </div>
+                <div className="flex flex-col w-full h-full justify-center">
+                    <div className="bg-[url('https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center h-[300px] md:h-full min-h-[500px] w-full rounded-lg filter grayscale hover:grayscale-0 transition-all duration-1000 opacity-80 shadow-2xl border border-white/5"></div>
                 </div>
 
             </div>

@@ -24,16 +24,13 @@ export default function LoginPage() {
     setError("");
     try {
       const response = await apiClient.post("/auth/login", data);
-      const { token, user } = response.data;
-      
+      const { tokens, user } = response.data;
+      const token = tokens.access.token;
+
       login(user, token);
       localStorage.setItem("token", token);
-      
-      if (user.role === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/client");
-      }
+
+      router.push("/admin");
     } catch (err: any) {
       setError(err.response?.data?.message || "Erro ao fazer login");
     } finally {
@@ -45,7 +42,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-barber-black to-barber-dark flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-barber-dark rounded-lg border border-barber-brown p-8">
         <h1 className="text-3xl font-bold text-barber-accent mb-8 text-center">BarberPro</h1>
-        
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
             <label className="block text-barber-beige mb-2 font-semibold">Email</label>
@@ -71,10 +68,6 @@ export default function LoginPage() {
             <input
               {...register("password", {
                 required: "Senha é obrigatória",
-                minLength: {
-                  value: 6,
-                  message: "Senha deve ter pelo menos 6 caracteres",
-                },
               })}
               type="password"
               className="w-full bg-barber-black text-barber-beige border border-barber-brown rounded px-4 py-2 focus:outline-none focus:border-barber-accent"
@@ -101,9 +94,9 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-barber-accent mt-6">
-          Não tem conta?{" "}
+          Quer levar sua barbearia para o próximo nível?{" "}
           <Link href="/auth/register" className="text-barber-beige hover:underline font-semibold">
-            Cadastre-se
+            Cadastre sua Barbearia
           </Link>
         </p>
       </div>

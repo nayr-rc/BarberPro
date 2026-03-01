@@ -3,9 +3,11 @@ import { persist } from "zustand/middleware";
 
 export interface User {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  name?: string; // for compatibility
   email: string;
-  role: "client" | "admin";
+  role: "admin" | "barber";
 }
 
 interface AuthStore {

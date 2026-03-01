@@ -34,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={`${poppins.variable} ${cinzel.variable} ${oldStandard.variable}`}>
-      <body className="antialiased bg-barber-black font-sans scroll-smooth">
+      <body className="antialiased bg-barber-black font-sans scroll-smooth" suppressHydrationWarning>
         {children}
       </body>
     </html>

@@ -27,18 +27,25 @@ export default function RegisterPage() {
     setIsLoading(true);
     setError("");
     try {
+      const nameParts = data.name.trim().split(" ");
+      const firstName = nameParts[0];
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "-";
+
       const response = await apiClient.post("/auth/register", {
-        name: data.name,
+        firstName,
+        lastName,
         email: data.email,
-        phone: data.phone,
+        contactNumber: data.phone,
         password: data.password,
       });
-      
-      const { token, user } = response.data;
+
+      const { tokens, user } = response.data;
+      const token = tokens.access.token;
+
       login(user, token);
       localStorage.setItem("token", token);
-      
-      router.push("/client");
+
+      router.push("/admin");
     } catch (err: any) {
       setError(err.response?.data?.message || "Erro ao criar conta");
     } finally {
@@ -49,8 +56,8 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-barber-black to-barber-dark flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-barber-dark rounded-lg border border-barber-brown p-8">
-        <h1 className="text-3xl font-bold text-barber-accent mb-8 text-center">Cadastro</h1>
-        
+        <h1 className="text-3xl font-bold text-barber-accent mb-8 text-center uppercase tracking-widest">Novo Barbeiro</h1>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-barber-beige mb-2 font-semibold">Nome Completo</label>
@@ -96,10 +103,6 @@ export default function RegisterPage() {
             <input
               {...register("password", {
                 required: "Senha é obrigatória",
-                minLength: {
-                  value: 6,
-                  message: "Senha deve ter pelo menos 6 caracteres",
-                },
               })}
               type="password"
               className="w-full bg-barber-black text-barber-beige border border-barber-brown rounded px-4 py-2 focus:outline-none focus:border-barber-accent"
@@ -138,9 +141,9 @@ export default function RegisterPage() {
         </form>
 
         <p className="text-center text-barber-accent mt-6">
-          Já tem conta?{" "}
-          <Link href="/auth/login" className="text-barber-beige hover:underline font-semibold">
-            Entrar
+          Já é nosso parceiro?{" "}
+          <Link href="/auth/login" className="text-barber-beige hover:underline font-semibold text-xs tracking-widest uppercase ml-2">
+            Acessar Painel
           </Link>
         </p>
       </div>

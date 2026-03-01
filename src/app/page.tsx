@@ -1,12 +1,8 @@
-
 import Navbar from "@/components/sections/Navbar";
 import Hero from "@/components/sections/Hero";
-import About from "@/components/sections/About";
-import Services from "@/components/sections/Services";
-import Team from "@/components/sections/Team";
-import Gallery from "@/components/sections/Gallery";
-import Testimonials from "@/components/sections/Testimonials";
-import BookingSection from "@/components/sections/BookingSection";
+import Features from "@/components/sections/Features";
+import Pricing from "@/components/sections/Pricing";
+import FAQ from "@/components/sections/FAQ";
 import Footer from "@/components/sections/Footer";
 
 export default function Home() {
@@ -15,12 +11,9 @@ export default function Home() {
       <Navbar />
       <div className="w-full">
         <Hero />
-        <About />
-        <Services />
-        <Team />
-        <Gallery />
-        <Testimonials />
-        <BookingSection />
+        <Features />
+        <Pricing />
+        <FAQ />
         <Footer />
       </div>
     </main>
