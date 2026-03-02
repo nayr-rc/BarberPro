@@ -12,13 +12,13 @@ const startServer = async () => {
   try {
     // Tenta conectar ao SQLite
     await prisma.$connect();
-    logger.info('✅ Conectado ao SQLite via Prisma (Dados Persistentes)');
+    logger.info('✅ Conectado ao PostgreSQL via Prisma (Dados Persistentes)');
 
     server = app.listen(config.port, () => {
       logger.info(`🚀 Servidor rodando na porta ${config.port}`);
     });
   } catch (err) {
-    logger.error('❌ Falha ao iniciar o banco de dados SQLite:', err);
+    logger.error('❌ Falha ao iniciar o banco de dados PostgreSQL:', err);
     process.exit(1);
   }
 };
