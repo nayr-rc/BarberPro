@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
-const { User, Appointment } = require('../models');
+const prisma = require('../client');
 const ApiError = require('../utils/ApiError');
 const { startOfDay, endOfDay, addMinutes, isAfter, isBefore, parseISO } = require('date-fns');
 
@@ -8,21 +8,30 @@ const getAvailability = catchAsync(async (req, res) => {
     const { barberId, date } = req.query;
     const selectedDate = date ? parseISO(date) : new Date();
 
-    const barber = await User.findById(barberId);
+    const barber = await prisma.user.findUnique({
+        where: { id: barberId }
+    });
+
     if (!barber || barber.role !== 'barber') {
         throw new ApiError(httpStatus.NOT_FOUND, 'Barbeiro não encontrado');
     }
 
+    // Parse working hours since Prisma stores it as String? for SQLite compatibility
+    let parsedWorkingHours = [];
+    if (barber.workingHours) {
+        try { parsedWorkingHours = JSON.parse(barber.workingHours); } catch (e) { }
+    }
+
     // Default or Custom Working Hours
     const dayOfWeek = selectedDate.getDay();
-    let config = barber.workingHours?.find(h => h.dayId === dayOfWeek);
+    let config = parsedWorkingHours.find((h) => h.dayId === dayOfWeek);
 
     // If no config found, or it's closed, return early
     if (config && !config.isOpen) {
         return res.send({
-            barber: { id: barber._id, firstName: barber.firstName, lastName: barber.lastName },
+            barber: { id: barber.id, firstName: barber.firstName, lastName: barber.lastName },
             availableSlots: [],
-            schedule: barber.workingHours || []
+            schedule: parsedWorkingHours
         });
     }
 
@@ -34,14 +43,16 @@ const getAvailability = catchAsync(async (req, res) => {
     currentSlot = addMinutes(currentSlot, startH * 60 + startM);
     const workEnd = addMinutes(startOfDay(selectedDate), endH * 60 + endM);
 
-    // Fetch all appointments
-    const appointments = await Appointment.find({
-        preferredHairdresser: barberId,
-        appointmentDateTime: {
-            $gte: startOfDay(selectedDate),
-            $lte: endOfDay(selectedDate),
-        },
-        status: { $ne: 'Cancelled' },
+    // Fetch all appointments for the day
+    const appointments = await prisma.appointment.findMany({
+        where: {
+            preferredHairdresserId: barberId,
+            appointmentDateTime: {
+                gte: startOfDay(selectedDate),
+                lte: endOfDay(selectedDate),
+            },
+            status: { not: 'Cancelled' },
+        }
     });
 
     const availableSlots = [];
@@ -66,27 +77,40 @@ const getAvailability = catchAsync(async (req, res) => {
 
     res.send({
         barber: {
-            id: barber._id,
+            id: barber.id,
             firstName: barber.firstName,
             lastName: barber.lastName,
             googleCalendarId: 'primary' // mock
         },
         availableSlots,
-        schedule: barber.workingHours || []
+        schedule: parsedWorkingHours
     });
 });
 
 const updateAvailability = catchAsync(async (req, res) => {
     const { barberId, workingHours } = req.body;
-    const barber = await User.findById(barberId);
+
+    // Check if the user trying to update is the barber themselves (security check added)
+    if (req.user && req.user.role !== 'admin' && req.user.id !== barberId) {
+        throw new ApiError(httpStatus.FORBIDDEN, 'Você só pode alterar sua própria agenda');
+    }
+
+    const barber = await prisma.user.findUnique({ where: { id: barberId } });
     if (!barber) {
         throw new ApiError(httpStatus.NOT_FOUND, 'Barbeiro não encontrado');
     }
 
-    barber.workingHours = workingHours;
-    await barber.save();
+    const updatedBarber = await prisma.user.update({
+        where: { id: barberId },
+        data: {
+            workingHours: JSON.stringify(workingHours)
+        }
+    });
 
-    res.send({ message: 'Agenda atualizada com sucesso', workingHours: barber.workingHours });
+    res.send({
+        message: 'Agenda atualizada com sucesso',
+        workingHours: JSON.parse(updatedBarber.workingHours)
+    });
 });
 
 module.exports = {
