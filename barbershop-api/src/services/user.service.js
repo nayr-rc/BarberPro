@@ -11,12 +11,11 @@ const { notifySubscriptionEvent } = require('../utils/notifications');
  * @returns {Promise<boolean>}
  */
 const isEmailTaken = async (email, excludeUserId) => {
-  const user = await prisma.user.findFirst({
-    where: {
-      email,
-      id: { not: excludeUserId },
-    },
-  });
+  const where = { email };
+  if (excludeUserId) {
+    where.id = { not: excludeUserId };
+  }
+  const user = await prisma.user.findFirst({ where });
   return !!user;
 };
 
@@ -51,7 +50,7 @@ const createUser = async (userBody) => {
   });
 
   // Notifica o administrador (Ryan) sobre a nova tentativa de contratação
-  if (user.role === 'barber') {
+  /* if (user.role === 'barber') {
     void notifySubscriptionEvent({
       event: 'user.created',
       userName: `${user.firstName} ${user.lastName}`,
@@ -59,7 +58,7 @@ const createUser = async (userBody) => {
       userId: user.id,
       subscriptionStatus: user.subscriptionStatus
     });
-  }
+  } */
 
   return user;
 };
