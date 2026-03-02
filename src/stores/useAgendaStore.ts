@@ -29,13 +29,9 @@ export const useAgendaStore = create<AgendaState>((set) => ({
 
     carregarAgendamentos: (data = new Date().toISOString().split('T')[0]) => {
         set({ isLoading: true });
-        // Mock API
+        // Simular chamada vazia enquanto a API real não for conectada
         setTimeout(() => {
-            const mock: Agendamento[] = [
-                { id: '1', cliente: 'João Silva', servico: 'Corte + Barba', data: '2026-03-02', hora: '09:00', status: 'confirmado', valor: 85 },
-            ];
-            const hoje = mock.filter(a => a.data === data);
-            set({ agendamentos: mock, agendamentosHoje: hoje, isLoading: false });
+            set({ agendamentos: [], agendamentosHoje: [], isLoading: false });
         }, 600);
     },
 

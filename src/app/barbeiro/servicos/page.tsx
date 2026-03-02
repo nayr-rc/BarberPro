@@ -25,13 +25,7 @@ export default function BarbeiroServicos() {
         if (saved) {
             setServices(JSON.parse(saved));
         } else {
-            const defaults = [
-                { id: '1', title: 'Corte Social', price: 35, duration: '30' },
-                { id: '2', title: 'Barba Completa', price: 25, duration: '20' },
-                { id: '3', title: 'Corte + Barba', price: 50, duration: '50' },
-            ];
-            setServices(defaults);
-            localStorage.setItem(`barber_services_${user?.id || 'default'}`, JSON.stringify(defaults));
+            setServices([]);
         }
     }, [isAuthenticated, user, router]);
 

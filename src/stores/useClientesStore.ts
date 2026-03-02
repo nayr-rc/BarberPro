@@ -26,11 +26,7 @@ export const useClientesStore = create<ClientesState>((set) => ({
     busca: '',
 
     carregarClientes: () => {
-        const mock: Cliente[] = [
-            { id: '1', nome: 'João Silva', telefone: '(71) 99999-8888', totalCortes: 12, ultimoAgendamento: '2026-02-28' },
-            { id: '2', nome: 'Maria Oliveira', telefone: '(71) 98888-7777', totalCortes: 5, ultimoAgendamento: '2026-03-01' },
-        ];
-        set({ clientes: mock });
+        set({ clientes: [] });
     },
 
     buscarClientes: (termo) => {

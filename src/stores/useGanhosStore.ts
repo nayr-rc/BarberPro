@@ -30,11 +30,11 @@ export const useGanhosStore = create<GanhosState>((set) => ({
         setTimeout(() => {
             set({
                 resumo: {
-                    totalHoje: 245,
-                    totalSemana: 1248,
-                    totalMes: 4870,
-                    comparacaoSemana: 18,
-                    comparacaoMes: 12,
+                    totalHoje: 0,
+                    totalSemana: 0,
+                    totalMes: 0,
+                    comparacaoSemana: 0,
+                    comparacaoMes: 0,
                 },
                 isLoading: false,
             });

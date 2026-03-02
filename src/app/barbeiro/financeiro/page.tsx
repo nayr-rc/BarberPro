@@ -94,7 +94,7 @@ export default function BarbeiroFinanceiro() {
                             </div>
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Saldo em Carteira</p>
-                                <p className="text-2xl font-black">R$ 1.150,00</p>
+                                <p className="text-2xl font-black">R$ 0,00</p>
                             </div>
                         </div>
                         <Button variant="outline" className="w-full py-4 text-[10px] font-black uppercase tracking-widest border-amber-500/20 bg-amber-500/5 text-amber-500">Solicitar Saque</Button>
@@ -107,7 +107,7 @@ export default function BarbeiroFinanceiro() {
                             </div>
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Previsão Próximo Mês</p>
-                                <p className="text-2xl font-black">R$ 5.200,00</p>
+                                <p className="text-2xl font-black">R$ 0,00</p>
                             </div>
                         </div>
                         <Button variant="outline" className="w-full py-4 text-[10px] font-black uppercase tracking-widest border-blue-500/20 bg-blue-500/5 text-blue-400">Ver Projeções</Button>
