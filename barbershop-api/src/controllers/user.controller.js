@@ -61,13 +61,13 @@ const changePassword = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  const isMatch = await user.isPasswordMatch(currentPassword);
+  const bcrypt = require('bcryptjs');
+  const isMatch = await bcrypt.compare(currentPassword, user.password);
   if (!isMatch) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Incorrect current password');
   }
 
-  user.password = newPassword;
-  await user.save();
+  await userService.updateUserById(userId, { password: newPassword });
 
   res.status(httpStatus.OK).send({ message: 'Password changed successfully' });
 });
