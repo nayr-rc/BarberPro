@@ -4,28 +4,32 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-    const adminEmail = 'narsie454@gmaill.com';
+    // Vamos criar/atualizar para ambos os casos para garantir que você entre
+    const emails = ['narsie454@gmail.com', 'narsie454@gmaill.com'];
     const hashedPassword = await bcrypt.hash('admin123', 8);
 
-    const admin = await prisma.user.upsert({
-        where: { email: adminEmail },
-        update: {
-            password: hashedPassword,
-            role: 'admin',
-            firstName: 'Ryan',
-            lastName: 'Gonçalves',
-        },
-        create: {
-            email: adminEmail,
-            password: hashedPassword,
-            firstName: 'Ryan',
-            lastName: 'Gonçalves',
-            contactNumber: '71999034067',
-            role: 'admin',
-        },
-    });
-
-    console.log('✅ Admin user created/updated:', admin.email);
+    for (const adminEmail of emails) {
+        const admin = await prisma.user.upsert({
+            where: { email: adminEmail },
+            update: {
+                password: hashedPassword,
+                role: 'admin',
+                subscriptionStatus: 'active',
+                firstName: 'Ryan',
+                lastName: 'Gonçalves',
+            },
+            create: {
+                email: adminEmail,
+                password: hashedPassword,
+                firstName: 'Ryan',
+                lastName: 'Gonçalves',
+                contactNumber: '71999034067',
+                role: 'admin',
+                subscriptionStatus: 'active',
+            },
+        });
+        console.log('✅ Admin user ready:', admin.email);
+    }
 }
 
 main()

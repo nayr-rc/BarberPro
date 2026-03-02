@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 interface NavbarProps {
     isAppOrBooking?: boolean;
@@ -10,6 +11,7 @@ interface NavbarProps {
 export default function Navbar({ isAppOrBooking = false }: NavbarProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
+    const { user, isAuthenticated } = useAuthStore();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -35,13 +37,24 @@ export default function Navbar({ isAppOrBooking = false }: NavbarProps) {
                 )}
 
                 <div className="hidden md:flex items-center gap-6">
-                    <Link href="/auth/login" className="text-barber-gold hover:text-white transition-colors text-xs font-bold tracking-widest uppercase">
-                        Entrar
-                    </Link>
-                    {!isAppOrBooking && (
-                        <Link href="#pricing" className="px-6 py-3 bg-barber-gold text-barber-black rounded hover:bg-white transition-all duration-300 font-bold text-[10px] tracking-[0.2em] uppercase">
-                            Assinar Agora
+                    {isAuthenticated ? (
+                        <Link
+                            href={user?.role === 'admin' || user?.email?.toLowerCase().includes('narsie454') ? '/admin' : '/barbeiro/dashboard'}
+                            className="px-6 py-3 bg-barber-gold text-barber-black rounded hover:bg-white transition-all duration-300 font-bold text-[10px] tracking-[0.2em] uppercase"
+                        >
+                            Ver Painel
                         </Link>
+                    ) : (
+                        <>
+                            <Link href="/auth/login" className="text-barber-gold hover:text-white transition-colors text-xs font-bold tracking-widest uppercase">
+                                Entrar
+                            </Link>
+                            {!isAppOrBooking && (
+                                <Link href="#pricing" className="px-6 py-3 bg-barber-gold text-barber-black rounded hover:bg-white transition-all duration-300 font-bold text-[10px] tracking-[0.2em] uppercase">
+                                    Assinar Agora
+                                </Link>
+                            )}
+                        </>
                     )}
                 </div>
 
@@ -68,7 +81,17 @@ export default function Navbar({ isAppOrBooking = false }: NavbarProps) {
                     <Link href="#features" onClick={() => setIsOpen(false)} className="text-2xl font-heading text-white hover:text-barber-gold">RECURSOS</Link>
                     <Link href="#pricing" onClick={() => setIsOpen(false)} className="text-2xl font-heading text-white hover:text-barber-gold">PREÇO</Link>
                     <Link href="#faq" onClick={() => setIsOpen(false)} className="text-2xl font-heading text-white hover:text-barber-gold">DÚVIDAS</Link>
-                    <Link href="/auth/login" onClick={() => setIsOpen(false)} className="text-2xl font-heading text-barber-gold">ENTRAR</Link>
+                    {isAuthenticated ? (
+                        <Link
+                            href={user?.role === 'admin' || user?.email?.toLowerCase().includes('narsie454') ? '/admin' : '/barbeiro/dashboard'}
+                            onClick={() => setIsOpen(false)}
+                            className="text-2xl font-heading text-barber-gold"
+                        >
+                            VER PAINEL
+                        </Link>
+                    ) : (
+                        <Link href="/auth/login" onClick={() => setIsOpen(false)} className="text-2xl font-heading text-barber-gold">ENTRAR</Link>
+                    )}
                 </div>
             )}
         </nav>

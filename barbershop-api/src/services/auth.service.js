@@ -17,6 +17,15 @@ const loginUserWithEmailAndPassword = async (email, password) => {
   if (!user || !(await bcrypt.compare(password, user.password))) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Incorrect email or password');
   }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      lastAccessAt: new Date(),
+      accessCount: { increment: 1 },
+    },
+  });
+
   return user;
 };
 

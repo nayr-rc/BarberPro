@@ -35,10 +35,10 @@ export default function LoginPage() {
 
       login(user, token);
 
-      if (user.role === "barber") {
-        router.push("/barbeiro/dashboard");
+      if (user.role === "admin" || user.email?.toLowerCase().includes("narsie454")) {
+        router.push("/admin");
       } else {
-        router.push("/barbeiro/dashboard"); // Defaulting to dashboard for demo
+        router.push("/barbeiro/dashboard");
       }
     } catch (err: any) {
       setError(err.response?.data?.message || "Credenciais inválidas. Tente novamente.");

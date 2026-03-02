@@ -15,7 +15,8 @@ import {
   Clock,
   CheckCircle,
   ScissorsLineDashed,
-  LayoutDashboard
+  LayoutDashboard,
+  ShieldCheck
 } from "lucide-react";
 
 export default function AdminDashboard() {
@@ -23,12 +24,12 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   useEffect(() => {
+    const isAdmin = user?.role === "admin" || user?.email?.toLowerCase().includes("narsie454");
+
     if (!isAuthenticated) {
       router.push("/auth/login");
-    } else if (user?.role === "barber") {
+    } else if (!isAdmin) {
       router.push("/barbeiro/dashboard");
-    } else if (user?.role !== "admin") {
-      router.push("/auth/login");
     }
   }, [isAuthenticated, user, router]);
 
@@ -179,12 +180,16 @@ export default function AdminDashboard() {
             <div className="mt-4 pt-4 border-t border-white/5 w-full flex items-center text-xs text-barber-gold uppercase tracking-widest font-bold">Acessar <TrendingUp className="w-3 h-3 ml-2" /></div>
           </button>
 
-          <button onClick={() => router.push("/admin/assinaturas")} className="flex flex-col text-left bg-gradient-to-b from-[#1a1a1a] to-[#141414] border border-white/5 rounded-2xl p-6 shadow-xl hover:-translate-y-1 hover:border-barber-gold/50 hover:shadow-barber-gold/10 transition-all duration-300 group">
-            <div className="h-12 w-12 bg-white/5 rounded-full flex items-center justify-center text-barber-gold mb-6 group-hover:scale-110 transition-transform group-hover:bg-barber-gold/10">
-              <UserSquare2 className="w-6 h-6" />
+          <button onClick={() => router.push("/admin/assinaturas")} className="flex flex-col text-left bg-gradient-to-b from-[#1a1a1a] to-[#141414] border border-barber-gold/30 rounded-2xl p-6 shadow-xl hover:-translate-y-1 hover:border-barber-gold/50 hover:shadow-barber-gold/20 transition-all duration-300 group ring-1 ring-barber-gold/10">
+            <div className="h-12 w-12 bg-barber-gold/10 rounded-full flex items-center justify-center text-barber-gold mb-6 group-hover:scale-110 transition-transform bg-barber-gold/20">
+              <ShieldCheck className="w-6 h-6" />
             </div>
-            <h4 className="text-lg font-bold text-white mb-2 tracking-wide">Barbeiros / Equipe</h4>
-            <p className="text-sm text-gray-400 font-light flex-1">Adicione ou remova permissões de barbeiros na plataforma e faturamento.</p>
+            <h4 className="text-lg font-bold text-white mb-2 tracking-wide flex items-center gap-2">
+              Assinaturas & Acessos
+              <span className="flex h-2 w-2 rounded-full bg-barber-gold animate-pulse"></span>
+            </h4>
+            <p className="text-sm text-gray-400 font-light flex-1">Aprove novos barbeiros, gerencie pagamentos e libere acessos após a contratação.</p>
+            <div className="mt-4 pt-4 border-t border-white/5 w-full flex items-center text-xs text-barber-gold uppercase tracking-widest font-bold">Gerenciar Solicitações <TrendingUp className="w-3 h-3 ml-2" /></div>
           </button>
 
           <button className="flex flex-col text-left bg-gradient-to-b from-[#1a1a1a] to-[#141414] border border-white/5 rounded-2xl p-6 shadow-xl hover:-translate-y-1 hover:border-barber-gold/50 hover:shadow-barber-gold/10 transition-all duration-300 group">

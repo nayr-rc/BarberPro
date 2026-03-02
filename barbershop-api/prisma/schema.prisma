@@ -25,6 +25,12 @@ model User {
   subscriptionStatus        String   @default("pending")
   subscriptionExpiresAt     DateTime?
   subscriptionActivatedAt   DateTime?
+  subscriptionPausedAt      DateTime?
+  subscriptionPauseReason   String?
+  subscriptionCancelledAt   DateTime?
+  subscriptionCancelledReason String?
+  lastAccessAt              DateTime?
+  accessCount               Int      @default(0)
   workingHours              String?
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
@@ -34,6 +40,21 @@ model User {
   barberAppointments        Appointment[] @relation("BarberAppointments")
   reviews                   Review[]      @relation("UserReviews")
   barberReviews             Review[]      @relation("BarberReviews")
+  initiatedSubscriptionLogs SubscriptionActionLog[] @relation("SubscriptionLogInitiator")
+  targetSubscriptionLogs    SubscriptionActionLog[] @relation("SubscriptionLogTarget")
+}
+
+model SubscriptionActionLog {
+  id           String   @id @default(uuid())
+  action       String
+  details      String?
+  createdAt    DateTime @default(now())
+  initiatedBy  User     @relation("SubscriptionLogInitiator", fields: [initiatedById], references: [id], onDelete: Cascade)
+  initiatedById String
+  targetUser   User     @relation("SubscriptionLogTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  targetUserId String
+
+  @@index([targetUserId, createdAt])
 }
 
 model Token {
