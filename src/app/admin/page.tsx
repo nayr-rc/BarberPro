@@ -96,10 +96,9 @@ export default function AdminDashboard() {
               <div className="p-3 bg-barber-gold/10 rounded-lg text-barber-gold group-hover:scale-110 transition-transform">
                 <Calendar className="w-6 h-6" />
               </div>
-              <span className="flex items-center gap-1 text-xs text-green-400 bg-green-400/10 px-2 py-1 rounded-full"><TrendingUp className="w-3 h-3" /> +12%</span>
             </div>
             <div>
-              <div className="text-3xl font-bold text-white mb-1">14</div>
+              <div className="text-3xl font-bold text-white mb-1">0</div>
               <div className="text-xs text-gray-400 tracking-widest uppercase font-bold">Agendamentos Hoje</div>
             </div>
           </div>
@@ -111,7 +110,7 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-white mb-1">842</div>
+              <div className="text-3xl font-bold text-white mb-1">0</div>
               <div className="text-xs text-gray-400 tracking-widest uppercase font-bold">Clientes Ativos</div>
             </div>
           </div>
@@ -121,10 +120,9 @@ export default function AdminDashboard() {
               <div className="p-3 bg-purple-500/10 rounded-lg text-purple-400 group-hover:scale-110 transition-transform">
                 <CheckCircle className="w-6 h-6" />
               </div>
-              <span className="flex items-center gap-1 text-xs text-green-400 bg-green-400/10 px-2 py-1 rounded-full"><TrendingUp className="w-3 h-3" /> +5%</span>
             </div>
             <div>
-              <div className="text-3xl font-bold text-white mb-1">98%</div>
+              <div className="text-3xl font-bold text-white mb-1">0%</div>
               <div className="text-xs text-gray-400 tracking-widest uppercase font-bold">Taxa de Conclusão</div>
             </div>
           </div>
@@ -136,7 +134,7 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-white mb-1">R$ 4.2k</div>
+              <div className="text-3xl font-bold text-white mb-1">R$ 0,00</div>
               <div className="text-xs text-gray-400 tracking-widest uppercase font-bold">Receita (Semana)</div>
             </div>
           </div>
