@@ -4,13 +4,12 @@ import path from 'path';
 
 const KEY_FILE = path.join(process.cwd(), 'google-service-account.json');
 
-const auth = new google.auth.GoogleAuth({
-    keyFile: KEY_FILE,
-    scopes: ['https://www.googleapis.com/auth/calendar'],
-});
-
 export async function POST(request: Request) {
     try {
+        const auth = new google.auth.GoogleAuth({
+            keyFile: KEY_FILE,
+            scopes: ['https://www.googleapis.com/auth/calendar'],
+        });
         const body = await request.json();
         const { calendarId = 'primary', start, end, customerName, customerPhone, barberName } = body;
 

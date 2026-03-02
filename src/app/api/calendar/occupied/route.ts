@@ -4,16 +4,15 @@ import path from 'path';
 
 const KEY_FILE = path.join(process.cwd(), 'google-service-account.json');
 
-const auth = new google.auth.GoogleAuth({
-    keyFile: KEY_FILE,
-    scopes: ['https://www.googleapis.com/auth/calendar'],
-});
-
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const calendarId = searchParams.get('calendarId') || 'primary'; // use 'primary' ou o ID real
 
     try {
+        const auth = new google.auth.GoogleAuth({
+            keyFile: KEY_FILE,
+            scopes: ['https://www.googleapis.com/auth/calendar'],
+        });
         const calendar = google.calendar({ version: 'v3', auth });
 
         const now = new Date();
