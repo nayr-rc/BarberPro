@@ -9,10 +9,17 @@ export async function GET(request: Request) {
     const calendarId = searchParams.get('calendarId') || 'primary'; // use 'primary' ou o ID real
 
     try {
-        const auth = new google.auth.GoogleAuth({
-            keyFile: KEY_FILE,
+        let authOptions: any = {
             scopes: ['https://www.googleapis.com/auth/calendar'],
-        });
+        };
+
+        if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+            authOptions.credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+        } else {
+            authOptions.keyFile = KEY_FILE;
+        }
+
+        const auth = new google.auth.GoogleAuth(authOptions);
         const calendar = google.calendar({ version: 'v3', auth });
 
         const now = new Date();

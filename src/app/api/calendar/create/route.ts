@@ -6,10 +6,15 @@ const KEY_FILE = path.join(process.cwd(), 'google-service-account.json');
 
 export async function POST(request: Request) {
     try {
-        const auth = new google.auth.GoogleAuth({
-            keyFile: KEY_FILE,
+        let authOptions: any = {
             scopes: ['https://www.googleapis.com/auth/calendar'],
-        });
+        };
+        if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+            authOptions.credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+        } else {
+            authOptions.keyFile = KEY_FILE;
+        }
+        const auth = new google.auth.GoogleAuth(authOptions);
         const body = await request.json();
         const { calendarId = 'primary', start, end, customerName, customerPhone, barberName } = body;
 
