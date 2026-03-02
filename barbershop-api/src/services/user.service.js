@@ -2,7 +2,6 @@ const httpStatus = require('http-status');
 const bcrypt = require('bcryptjs');
 const prisma = require('../client');
 const ApiError = require('../utils/ApiError');
-const { notifySubscriptionEvent } = require('../utils/notifications');
 
 /**
  * Check if email is taken
@@ -45,13 +44,13 @@ const createUser = async (userBody) => {
     data.subscriptionStatus = 'pending';
     if (!data.workingHours) {
       const defaultSchedule = [
-        { dayId: 0, dayLabel: "Domingo", isOpen: false, startTime: "09:00", endTime: "19:00" },
-        { dayId: 1, dayLabel: "Segunda-feira", isOpen: true, startTime: "09:00", endTime: "19:00" },
-        { dayId: 2, dayLabel: "Terça-feira", isOpen: true, startTime: "09:00", endTime: "19:00" },
-        { dayId: 3, dayLabel: "Quarta-feira", isOpen: true, startTime: "09:00", endTime: "19:00" },
-        { dayId: 4, dayLabel: "Quinta-feira", isOpen: true, startTime: "09:00", endTime: "19:00" },
-        { dayId: 5, dayLabel: "Sexta-feira", isOpen: true, startTime: "09:00", endTime: "19:00" },
-        { dayId: 6, dayLabel: "Sábado", isOpen: false, startTime: "09:00", endTime: "19:00" }
+        { dayId: 0, dayLabel: 'Domingo', isOpen: false, startTime: '09:00', endTime: '19:00' },
+        { dayId: 1, dayLabel: 'Segunda-feira', isOpen: true, startTime: '09:00', endTime: '19:00' },
+        { dayId: 2, dayLabel: 'Terça-feira', isOpen: true, startTime: '09:00', endTime: '19:00' },
+        { dayId: 3, dayLabel: 'Quarta-feira', isOpen: true, startTime: '09:00', endTime: '19:00' },
+        { dayId: 4, dayLabel: 'Quinta-feira', isOpen: true, startTime: '09:00', endTime: '19:00' },
+        { dayId: 5, dayLabel: 'Sexta-feira', isOpen: true, startTime: '09:00', endTime: '19:00' },
+        { dayId: 6, dayLabel: 'Sábado', isOpen: false, startTime: '09:00', endTime: '19:00' },
       ];
       data.workingHours = JSON.stringify(defaultSchedule);
     }
@@ -86,7 +85,7 @@ const queryUsers = async (filter, options) => {
   const skip = (page - 1) * limit;
 
   // Basic sort parsing "field:asc"
-  let orderBy = {};
+  const orderBy = {};
   if (sortBy) {
     const [field, order] = sortBy.split(':');
     orderBy[field] = order || 'asc';
@@ -158,7 +157,7 @@ const getUserByEmail = async (email) => {
  * @returns {Promise<Object>}
  */
 const updateUserById = async (userId, updateBody) => {
-  const user = await getUserById(userId);
+  await getUserById(userId);
   if (updateBody.email && (await isEmailTaken(updateBody.email, userId))) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }

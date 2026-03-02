@@ -1,15 +1,35 @@
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
 const ApiError = require('../utils/ApiError');
+const pick = require('../utils/pick');
 
 const { appointmentService, userService, serviceService } = require('../services');
 const { sendAppointmentNotificationToUser, sendAppointmentNotificationToBarber } = require('./notification.controller');
 
-const createAppointment = catchAsync(async (req, res) => {
-  const appointment = await appointmentService.createAppointment(req.body);
+const removeUndefined = (object) => {
+  const sanitized = { ...object };
+  Object.keys(sanitized).forEach((key) => {
+    if (sanitized[key] === undefined) {
+      delete sanitized[key];
+    }
+  });
 
-  const barberDetails = await userService.getUserById(appointment.preferredHairdresser);
-  const serviceDetails = await serviceService.getServiceById(appointment.serviceType);
+  return sanitized;
+};
+
+const createAppointment = catchAsync(async (req, res) => {
+  const userPayload = {
+    userId: req.body.userId || req.user.id,
+    email: req.body.email || req.user.email,
+    firstName: req.body.firstName || req.user.firstName,
+    lastName: req.body.lastName || req.user.lastName,
+    contactNumber: req.body.contactNumber || req.user.contactNumber,
+  };
+
+  const appointment = await appointmentService.createAppointment(removeUndefined({ ...req.body, ...userPayload }));
+
+  const barberDetails = await userService.getUserById(appointment.preferredHairdresserId);
+  const serviceDetails = await serviceService.getServiceById(appointment.serviceTypeId);
 
   await sendAppointmentNotificationToUser({
     userId: appointment.userId,
@@ -22,7 +42,7 @@ const createAppointment = catchAsync(async (req, res) => {
 
   // Notify the barber
   await sendAppointmentNotificationToBarber({
-    barberId: appointment.preferredHairdresser,
+    barberId: appointment.preferredHairdresserId,
     type: 'new',
     appointmentDetails: appointment,
     userDetails: req.user,
@@ -34,34 +54,20 @@ const createAppointment = catchAsync(async (req, res) => {
 });
 
 const getAppointments = catchAsync(async (req, res) => {
-  // Extract the pagination and other query parameters manually
-  const filter = {
-    userId: req.query.userId,
-    preferredHairdresser: req.query.preferredHairdresser,
-    serviceCategory: req.query.serviceCategory,
-    serviceType: req.query.serviceType,
-    status: req.query.status,
-  };
+  const filter = pick(req.query, [
+    'userId',
+    'preferredHairdresserId',
+    'preferredHairdresser',
+    'serviceCategoryId',
+    'serviceCategory',
+    'serviceTypeId',
+    'serviceType',
+    'status',
+    'paymentStatus',
+  ]);
+  const options = pick(req.query, ['sortBy', 'populate', 'page', 'limit']);
 
-  // Remove undefined values from the filter object
-  Object.keys(filter).forEach((key) => {
-    if (filter[key] === undefined) {
-      delete filter[key];
-    }
-  });
-
-  // Extract pagination options and remove them from the filter
-  const options = {
-    sortBy: req.query.sortBy,
-    populate: req.query.populate,
-    page: parseInt(req.query.page, 10) || 1,
-    limit: parseInt(req.query.limit, 10) || 10,
-  };
-
-  // Call the service method with the extracted filter and options
   const result = await appointmentService.queryAppointments(filter, options);
-
-  // Send the result back to the client
   res.send(result);
 });
 
@@ -76,8 +82,8 @@ const getAppointment = catchAsync(async (req, res) => {
 const updateAppointment = catchAsync(async (req, res) => {
   const appointment = await appointmentService.updateAppointmentById(req.params.appointmentId, req.body);
 
-  const barberDetails = await userService.getUserById(appointment.preferredHairdresser);
-  const serviceDetails = await serviceService.getServiceById(appointment.serviceType);
+  const barberDetails = await userService.getUserById(appointment.preferredHairdresserId);
+  const serviceDetails = await serviceService.getServiceById(appointment.serviceTypeId);
 
   let notificationType = 'update';
   let type = 'updated';
@@ -90,8 +96,7 @@ const updateAppointment = catchAsync(async (req, res) => {
     type = 'feedback';
   }
 
-  // Identify the user who made the update
-  const isUserAction = req.body.userId === appointment.userId;
+  const isUserAction = req.user.id === appointment.userId;
 
   // Notify the user
   await sendAppointmentNotificationToUser({
@@ -105,7 +110,7 @@ const updateAppointment = catchAsync(async (req, res) => {
 
   // Notify the barber
   await sendAppointmentNotificationToBarber({
-    barberId: appointment.preferredHairdresser,
+    barberId: appointment.preferredHairdresserId,
     type: isUserAction ? 'user_updated' : 'barber_updated',
     appointmentDetails: appointment,
     userDetails: req.user,

@@ -33,6 +33,7 @@ export async function register(data: RegisterPayload): Promise<AuthResponse> {
 }
 
 export async function logout(): Promise<void> {
+  localStorage.removeItem("barberpro-auth");
   localStorage.removeItem("token");
   localStorage.removeItem("user");
 }

@@ -2,19 +2,34 @@ const Joi = require('joi');
 const { objectId } = require('./custom.validation');
 
 const createAppointment = {
-  body: Joi.object().keys({
-    firstName: Joi.string().required(),
-    lastName: Joi.string().required(),
-    contactNumber: Joi.string().required(),
-    email: Joi.string().email().required(),
-    preferredHairdresser: Joi.string().custom(objectId).required(),
-    serviceCategory: Joi.string().custom(objectId).required(),
-    serviceType: Joi.string().custom(objectId).required(),
-    additionalNotes: Joi.string().allow('').optional(),
-    userId: Joi.string().custom(objectId).required(),
-    appointmentDateTime: Joi.date().required(),
-    status: Joi.string().valid('Upcoming', 'Past', 'Cancelled').default('Upcoming'),
-  }),
+  body: Joi.object()
+    .keys({
+      firstName: Joi.string(),
+      lastName: Joi.string(),
+      guestName: Joi.string(),
+      contactNumber: Joi.string(),
+      guestPhone: Joi.string(),
+      email: Joi.string().email(),
+      preferredHairdresserId: Joi.string().custom(objectId),
+      preferredHairdresser: Joi.string().custom(objectId),
+      barberId: Joi.string().custom(objectId),
+      serviceCategoryId: Joi.string().custom(objectId),
+      serviceCategory: Joi.string().custom(objectId),
+      serviceTypeId: Joi.string().custom(objectId),
+      serviceType: Joi.string().custom(objectId),
+      serviceId: Joi.string().custom(objectId),
+      additionalNotes: Joi.string().allow('').optional(),
+      userId: Joi.string().custom(objectId),
+      appointmentDateTime: Joi.date(),
+      datetimeStart: Joi.date(),
+      status: Joi.string().valid('Upcoming', 'Past', 'Cancelled').default('Upcoming'),
+      paymentStatus: Joi.string().valid('Pending', 'Paid', 'Failed', 'Refunded'),
+      drinks: Joi.array().items(Joi.string().custom(objectId)),
+      drinkIds: Joi.array().items(Joi.string().custom(objectId)),
+    })
+    .or('preferredHairdresserId', 'preferredHairdresser', 'barberId')
+    .or('serviceTypeId', 'serviceType', 'serviceId')
+    .or('appointmentDateTime', 'datetimeStart'),
 };
 
 const updateAppointment = {
@@ -25,15 +40,26 @@ const updateAppointment = {
     .keys({
       firstName: Joi.string(),
       lastName: Joi.string(),
+      guestName: Joi.string(),
       contactNumber: Joi.string(),
+      guestPhone: Joi.string(),
       email: Joi.string().email(),
+      preferredHairdresserId: Joi.string().custom(objectId),
       preferredHairdresser: Joi.string().custom(objectId),
+      barberId: Joi.string().custom(objectId),
+      serviceCategoryId: Joi.string().custom(objectId),
       serviceCategory: Joi.string().custom(objectId),
+      serviceTypeId: Joi.string().custom(objectId),
       serviceType: Joi.string().custom(objectId),
+      serviceId: Joi.string().custom(objectId),
       additionalNotes: Joi.string().allow(''),
       userId: Joi.string().custom(objectId),
       appointmentDateTime: Joi.date(),
+      datetimeStart: Joi.date(),
       status: Joi.string().valid('Upcoming', 'Past', 'Cancelled'),
+      paymentStatus: Joi.string().valid('Pending', 'Paid', 'Failed', 'Refunded'),
+      drinks: Joi.array().items(Joi.string().custom(objectId)),
+      drinkIds: Joi.array().items(Joi.string().custom(objectId)),
     })
     .min(1),
 };
@@ -44,13 +70,31 @@ const deleteAppointment = {
   }),
 };
 
+const getAppointment = {
+  params: Joi.object().keys({
+    appointmentId: Joi.string().custom(objectId).required(),
+  }),
+};
+
+const payAppointment = {
+  params: Joi.object().keys({
+    appointmentId: Joi.string().custom(objectId).required(),
+  }),
+};
+
 const getAppointments = {
   query: Joi.object().keys({
+    preferredHairdresserId: Joi.string().custom(objectId),
     preferredHairdresser: Joi.string().custom(objectId),
+    serviceCategoryId: Joi.string().custom(objectId),
     serviceCategory: Joi.string().custom(objectId),
+    serviceTypeId: Joi.string().custom(objectId),
     serviceType: Joi.string().custom(objectId),
     userId: Joi.string().custom(objectId),
     status: Joi.string().valid('Upcoming', 'Past', 'Cancelled'),
+    paymentStatus: Joi.string().valid('Pending', 'Paid', 'Failed', 'Refunded'),
+    populate: Joi.string(),
+    sortBy: Joi.string(),
     page: Joi.number().integer().min(1),
     limit: Joi.number().integer().min(1),
   }),
@@ -60,5 +104,7 @@ module.exports = {
   createAppointment,
   updateAppointment,
   deleteAppointment,
+  getAppointment,
+  payAppointment,
   getAppointments,
 };

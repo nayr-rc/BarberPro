@@ -14,13 +14,13 @@ router
 
 router
   .route('/:appointmentId')
-  .get(auth(), checkSubscription, appointmentController.getAppointment)
+  .get(auth(), checkSubscription, validate(appointmentValidation.getAppointment), appointmentController.getAppointment)
   .patch(auth(), checkSubscription, validate(appointmentValidation.updateAppointment), appointmentController.updateAppointment)
   .delete(auth(), checkSubscription, validate(appointmentValidation.deleteAppointment), appointmentController.deleteAppointment);
 
 router
   .route('/:appointmentId/pay')
-  .post(auth(), checkSubscription, appointmentController.payAppointment);
+  .post(auth(), checkSubscription, validate(appointmentValidation.payAppointment), appointmentController.payAppointment);
 
 module.exports = router;
 

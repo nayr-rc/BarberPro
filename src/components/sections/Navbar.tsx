@@ -39,7 +39,7 @@ export default function Navbar({ isAppOrBooking = false }: NavbarProps) {
                 <div className="hidden md:flex items-center gap-6">
                     {isAuthenticated ? (
                         <Link
-                            href={user?.role === 'admin' || user?.email?.toLowerCase().includes('narsie454') ? '/admin' : '/barbeiro/dashboard'}
+                            href={user?.role === 'admin' ? '/admin' : '/barbeiro/dashboard'}
                             className="px-6 py-3 bg-barber-gold text-barber-black rounded hover:bg-white transition-all duration-300 font-bold text-[10px] tracking-[0.2em] uppercase"
                         >
                             Ver Painel
@@ -83,7 +83,7 @@ export default function Navbar({ isAppOrBooking = false }: NavbarProps) {
                     <Link href="#faq" onClick={() => setIsOpen(false)} className="text-2xl font-heading text-white hover:text-barber-gold">DÚVIDAS</Link>
                     {isAuthenticated ? (
                         <Link
-                            href={user?.role === 'admin' || user?.email?.toLowerCase().includes('narsie454') ? '/admin' : '/barbeiro/dashboard'}
+                            href={user?.role === 'admin' ? '/admin' : '/barbeiro/dashboard'}
                             onClick={() => setIsOpen(false)}
                             className="text-2xl font-heading text-barber-gold"
                         >

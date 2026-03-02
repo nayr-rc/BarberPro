@@ -2,31 +2,62 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { format, addDays, isSameDay, parseISO, startOfDay } from 'date-fns';
+import { format, addDays, isSameDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, Scissors, Clock, Calendar as CalendarIcon, CheckCircle2, X } from 'lucide-react';
 import Link from 'next/link';
+
+type TimeSlot = {
+    start: string;
+    end: string;
+};
+
+type OccupiedSlot = {
+    start: string;
+    end: string;
+};
+
+type BarberSchedule = {
+    dayId: number;
+    isOpen: boolean;
+    startTime: string;
+    endTime: string;
+};
+
+type BarberProfile = {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email?: string;
+    googleCalendarId?: string;
+};
+
+type ServiceOption = {
+    id: string;
+    title: string;
+    price: number;
+};
 
 export default function PaginaAgendar() {
     const { barberId } = useParams();
     const router = useRouter();
 
     const [loading, setLoading] = useState(true);
-    const [barber, setBarber] = useState<any>(null);
-    const [availableSlots, setAvailableSlots] = useState<any[]>([]);
-    const [occupiedSlots, setOccupiedSlots] = useState<any[]>([]);
+    const [barber, setBarber] = useState<BarberProfile | null>(null);
+    const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
+    const [occupiedSlots, setOccupiedSlots] = useState<OccupiedSlot[]>([]);
 
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [days, setDays] = useState<Date[]>([]);
-    const [barberSchedule, setBarberSchedule] = useState<any[]>([]);
+    const [barberSchedule, setBarberSchedule] = useState<BarberSchedule[]>([]);
 
     // Services
-    const [services, setServices] = useState<{ id: string, title: string, price: number }[]>([]);
-    const [selectedService, setSelectedService] = useState<any>(null);
+    const [services, setServices] = useState<ServiceOption[]>([]);
+    const [selectedService, setSelectedService] = useState<ServiceOption | null>(null);
 
     // Modal & Form States
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedSlot, setSelectedSlot] = useState<any>(null);
+    const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
     const [customerName, setCustomerName] = useState('');
     const [customerPhone, setCustomerPhone] = useState('');
     const [customerEmail, setCustomerEmail] = useState('');
@@ -97,7 +128,7 @@ export default function PaginaAgendar() {
         const [startH, startM] = (config.startTime || "09:00").split(':').map(Number);
         const [endH, endM] = (config.endTime || "19:00").split(':').map(Number);
 
-        let current = new Date(selectedDate);
+        const current = new Date(selectedDate);
         current.setHours(startH, startM, 0, 0);
 
         const end = new Date(selectedDate);
@@ -117,7 +148,7 @@ export default function PaginaAgendar() {
     }, [availableSlots, barberSchedule, selectedDate]);
 
     // Check if a specific slot is occupied by Google Calendar
-    const isOccupied = (slot: any) => {
+    const isOccupied = (slot: TimeSlot) => {
         const slotStart = parseISO(slot.start).getTime();
         const slotEnd = parseISO(slot.end).getTime();
 
@@ -129,7 +160,7 @@ export default function PaginaAgendar() {
         });
     };
 
-    const handleBooking = (slot: any) => {
+    const handleBooking = (slot: TimeSlot) => {
         if (isOccupied(slot)) return;
         setSelectedSlot(slot);
         setIsModalOpen(true);
@@ -161,34 +192,37 @@ export default function PaginaAgendar() {
 
             const data = await res.json();
 
-            if (res.ok) {
-                alert('Horário marcado com sucesso! 🎉');
+                if (res.ok) {
+                    alert('Horário marcado com sucesso! 🎉');
 
-                // Email notification
-                try {
-                    await fetch('/api/send-email', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            to: 'nayr_rebello@hotmail.com',
-                            subject: `Novo Agendamento: ${customerName}`,
-                            html: `
-                                    <div style="font-family: sans-serif; background-color: #0D0D0D; color: #FFFFFF; padding: 40px; border-radius: 20px;">
-                                      <h2 style="color: #D4AF37; text-transform: uppercase;">Novo Agendamento</h2>
-                                      <p><strong>Cliente:</strong> ${customerName}</p>
-                                      <p><strong>WhatsApp:</strong> ${customerPhone}</p>
-                                      ${customerEmail ? `<p><strong>E-mail:</strong> ${customerEmail}</p>` : ''}
-                                      <p><strong>Serviço:</strong> ${selectedService?.title || 'Não informado'}</p>
-                                      <p><strong>Valor:</strong> R$ ${selectedService?.price?.toFixed(2) || '0,00'}</p>
-                                      <p><strong>Horário:</strong> ${format(parseISO(start), "dd/MM/yyyy 'às' HH:mm")}</p>
-                                      <div style="margin-top: 20px;">
-                                        <a href="${data.htmlLink}" style="background-color: #D4AF37; color: #000; padding: 10px 20px; border-radius: 5px; text-decoration: none;">Ver no Google</a>
-                                      </div>
-                                    </div>
-                                `
-                        }),
-                    });
-                } catch (e) { }
+                    // Email notification
+                    try {
+                        const notificationRecipient = barber?.email;
+                        if (notificationRecipient) {
+                            await fetch('/api/send-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: notificationRecipient,
+                                    subject: `Novo Agendamento: ${customerName}`,
+                                    html: `
+                                        <div style="font-family: sans-serif; background-color: #0D0D0D; color: #FFFFFF; padding: 40px; border-radius: 20px;">
+                                          <h2 style="color: #D4AF37; text-transform: uppercase;">Novo Agendamento</h2>
+                                          <p><strong>Cliente:</strong> ${customerName}</p>
+                                          <p><strong>WhatsApp:</strong> ${customerPhone}</p>
+                                          ${customerEmail ? `<p><strong>E-mail:</strong> ${customerEmail}</p>` : ''}
+                                          <p><strong>Serviço:</strong> ${selectedService?.title || 'Não informado'}</p>
+                                          <p><strong>Valor:</strong> R$ ${selectedService?.price?.toFixed(2) || '0,00'}</p>
+                                          <p><strong>Horário:</strong> ${format(parseISO(start), "dd/MM/yyyy 'às' HH:mm")}</p>
+                                          <div style="margin-top: 20px;">
+                                            <a href="${data.htmlLink}" style="background-color: #D4AF37; color: #000; padding: 10px 20px; border-radius: 5px; text-decoration: none;">Ver no Google</a>
+                                          </div>
+                                        </div>
+                                    `
+                                }),
+                            });
+                        }
+                } catch { }
 
                 setIsModalOpen(false);
                 setCustomerName('');
@@ -199,7 +233,7 @@ export default function PaginaAgendar() {
             } else {
                 alert('Erro: ' + data.error);
             }
-        } catch (err) {
+        } catch {
             alert('Erro na conexão.');
         } finally {
             setIsSubmitting(false);

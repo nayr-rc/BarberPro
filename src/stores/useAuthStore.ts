@@ -42,7 +42,7 @@ export const useAuthStore = create<AuthState>()(
             isSubscriptionActive: () => {
                 const { user } = get();
                 if (!user) return false;
-                if (user.role === 'admin' || user.email?.toLowerCase()?.includes('narsie454')) return true;
+                if (user.role === 'admin') return true;
                 if (user.subscriptionStatus !== 'active') return false;
                 if (user.subscriptionExpiresAt) {
                     return new Date(user.subscriptionExpiresAt) > new Date();

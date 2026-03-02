@@ -9,7 +9,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
-import { Scissors, Mail, Lock, LogIn, ChevronRight } from "lucide-react";
+import { Scissors, Mail, Lock, ChevronRight } from "lucide-react";
 
 interface LoginForm {
   email: string;
@@ -35,19 +35,21 @@ export default function LoginPage() {
 
       login(user, token);
 
-      if (user.role === "admin" || user.email?.toLowerCase().includes("narsie454")) {
+      if (user.role === "admin") {
         router.push("/admin");
       } else {
         router.push("/barbeiro/dashboard");
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Credenciais inválidas. Tente novamente.");
+    } catch (err: unknown) {
+      const message =
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof (err as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : "Credenciais inválidas. Tente novamente.";
 
-      // FOR DEMO: If API is not running, let's allow a mock login
-      if (data.email === "barbeiro@barberpro.com" && data.password === "123456") {
-        login({ id: "1", name: "Ryan", email: "ryan@barberpro.com", role: "barber" }, "mock-token");
-        router.push("/barbeiro/dashboard");
-      }
+      setError(message || "Credenciais inválidas. Tente novamente.");
     } finally {
       setIsLoading(false);
     }

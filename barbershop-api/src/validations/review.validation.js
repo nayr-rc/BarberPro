@@ -2,24 +2,28 @@ const Joi = require('joi');
 const { objectId } = require('./custom.validation');
 
 const createReview = {
-  body: Joi.object().keys({
-    userId: Joi.string().custom(objectId).required(),
-    barberId: Joi.string().custom(objectId).required(),
-    serviceType: Joi.string().custom(objectId).required(),
-    appointmentId: Joi.string().custom(objectId).required(),
-    name: Joi.string().required(),
-    rating: Joi.number().min(1).max(5).required(),
-    title: Joi.string().required(),
-    text: Joi.string().required(),
-    appointmentDateTime: Joi.date().required(),
-    date: Joi.date(),
-  }),
+  body: Joi.object()
+    .keys({
+      userId: Joi.string().custom(objectId).required(),
+      barberId: Joi.string().custom(objectId).required(),
+      serviceTypeId: Joi.string().custom(objectId),
+      serviceType: Joi.string().custom(objectId),
+      appointmentId: Joi.string().custom(objectId).required(),
+      name: Joi.string().required(),
+      rating: Joi.number().min(1).max(5).required(),
+      title: Joi.string().required(),
+      text: Joi.string().required(),
+      appointmentDateTime: Joi.date().required(),
+      date: Joi.date(),
+    })
+    .or('serviceTypeId', 'serviceType'),
 };
 
 const getReviews = {
   query: Joi.object().keys({
     userId: Joi.string().custom(objectId),
     barberId: Joi.string().custom(objectId),
+    serviceTypeId: Joi.string().custom(objectId),
     serviceType: Joi.string().custom(objectId),
     appointmentId: Joi.string().custom(objectId),
     name: Joi.string(),
@@ -30,6 +34,8 @@ const getReviews = {
     date: Joi.date(),
     limit: Joi.number().integer(),
     page: Joi.number().integer(),
+    sortBy: Joi.string(),
+    populate: Joi.string(),
   }),
 };
 

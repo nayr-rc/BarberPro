@@ -2,19 +2,20 @@ const express = require('express');
 const validate = require('../../middlewares/validate');
 const reviewController = require('../../controllers/review.controller');
 const reviewValidation = require('../../validations/review.validation');
+const auth = require('../../middlewares/auth');
 
 const router = express.Router();
 
 router
   .route('/')
-  .post(validate(reviewValidation.createReview), reviewController.createReview)
+  .post(auth(), validate(reviewValidation.createReview), reviewController.createReview)
   .get(validate(reviewValidation.getReviews), reviewController.getReviews);
 
 router
   .route('/:reviewId')
   .get(validate(reviewValidation.getReview), reviewController.getReview)
-  .patch(validate(reviewValidation.updateReview), reviewController.updateReview)
-  .delete(validate(reviewValidation.deleteReview), reviewController.deleteReview);
+  .patch(auth(), validate(reviewValidation.updateReview), reviewController.updateReview)
+  .delete(auth(), validate(reviewValidation.deleteReview), reviewController.deleteReview);
 
 module.exports = router;
 

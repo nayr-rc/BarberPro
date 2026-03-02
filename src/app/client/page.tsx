@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 
 export default function ClientDashboard() {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, logout } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -16,8 +16,7 @@ export default function ClientDashboard() {
   }, [isAuthenticated, router]);
 
   const handleLogout = () => {
-    useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
-    localStorage.removeItem("token");
+    logout();
     router.push("/");
   };
 

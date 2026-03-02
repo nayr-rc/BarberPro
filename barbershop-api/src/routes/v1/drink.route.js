@@ -7,13 +7,13 @@ const drinkController = require('../../controllers/drink.controller');
 const router = express.Router();
 
 router
-    .route('/')
-    .post(auth('manageServices'), validate(drinkValidation.createDrink), drinkController.createDrink)
-    .get(drinkController.getDrinks);
+  .route('/')
+  .post(auth('manageServices'), validate(drinkValidation.createDrink), drinkController.createDrink)
+  .get(drinkController.getDrinks);
 
 router
-    .route('/:drinkId')
-    .patch(auth('manageServices'), validate(drinkValidation.updateDrink), drinkController.updateDrink)
-    .delete(auth('manageServices'), drinkController.deleteDrink);
+  .route('/:drinkId')
+  .patch(auth('manageServices'), validate(drinkValidation.updateDrink), drinkController.updateDrink)
+  .delete(auth('manageServices'), validate(drinkValidation.deleteDrink), drinkController.deleteDrink);
 
 module.exports = router;
