@@ -2,21 +2,124 @@ const httpStatus = require('http-status');
 const ApiError = require('../utils/ApiError');
 const prisma = require('../client');
 
+const splitName = (name) => {
+  if (!name || typeof name !== 'string') {
+    return { firstName: undefined, lastName: undefined };
+  }
+
+  const [firstName, ...rest] = name.trim().split(/\s+/);
+  return {
+    firstName,
+    lastName: rest.join(' ') || '-',
+  };
+};
+
+const normalizeAppointmentFilter = (filter = {}) => {
+  const normalizedFilter = {
+    ...filter,
+    preferredHairdresserId: filter.preferredHairdresserId || filter.preferredHairdresser,
+    serviceCategoryId: filter.serviceCategoryId || filter.serviceCategory,
+    serviceTypeId: filter.serviceTypeId || filter.serviceType,
+  };
+
+  delete normalizedFilter.preferredHairdresser;
+  delete normalizedFilter.serviceCategory;
+  delete normalizedFilter.serviceType;
+
+  Object.keys(normalizedFilter).forEach((key) => {
+    if (normalizedFilter[key] === undefined) {
+      delete normalizedFilter[key];
+    }
+  });
+
+  return normalizedFilter;
+};
+
+const normalizeAppointmentPayload = async (appointmentBody) => {
+  const {
+    preferredHairdresser,
+    preferredHairdresserId,
+    barberId,
+    serviceCategory,
+    serviceCategoryId,
+    serviceType,
+    serviceTypeId,
+    serviceId,
+    guestName,
+    guestPhone,
+    datetimeStart,
+    drinkIds,
+    drinks,
+    ...rest
+  } = appointmentBody;
+
+  const namesFromGuest = splitName(guestName);
+
+  const normalizedPayload = {
+    ...rest,
+    firstName: rest.firstName || namesFromGuest.firstName,
+    lastName: rest.lastName || namesFromGuest.lastName,
+    contactNumber: rest.contactNumber || guestPhone,
+    preferredHairdresserId: preferredHairdresserId || preferredHairdresser || barberId,
+    serviceCategoryId: serviceCategoryId || serviceCategory,
+    serviceTypeId: serviceTypeId || serviceType || serviceId,
+    appointmentDateTime: rest.appointmentDateTime || datetimeStart,
+    drinks: drinks || drinkIds,
+  };
+
+  if (!normalizedPayload.serviceCategoryId && normalizedPayload.serviceTypeId) {
+    const relatedService = await prisma.service.findUnique({
+      where: { id: normalizedPayload.serviceTypeId },
+      select: { categoryId: true },
+    });
+
+    if (relatedService) {
+      normalizedPayload.serviceCategoryId = relatedService.categoryId;
+    }
+  }
+
+  return normalizedPayload;
+};
+
+const assertRequiredCreateFields = (appointmentBody) => {
+  const requiredFields = [
+    'firstName',
+    'lastName',
+    'contactNumber',
+    'email',
+    'userId',
+    'preferredHairdresserId',
+    'serviceCategoryId',
+    'serviceTypeId',
+    'appointmentDateTime',
+  ];
+
+  const missingFields = requiredFields.filter((field) => !appointmentBody[field]);
+
+  if (missingFields.length) {
+    throw new ApiError(httpStatus.BAD_REQUEST, `Missing required appointment fields: ${missingFields.join(', ')}`);
+  }
+};
+
 /**
  * Create an appointment
  * @param {Object} appointmentBody
  * @returns {Promise<Object>}
  */
 const createAppointment = async (appointmentBody) => {
-  const { drinks, ...data } = appointmentBody;
+  const normalizedPayload = await normalizeAppointmentPayload(appointmentBody);
+  assertRequiredCreateFields(normalizedPayload);
+  const { drinks: drinkIds, ...data } = normalizedPayload;
 
   return prisma.appointment.create({
     data: {
       ...data,
-      drinks: drinks ? {
-        connect: drinks.map(id => ({ id }))
-      } : undefined
-    }
+      drinks: drinkIds
+        ? {
+            connect: drinkIds.map((id) => ({ id })),
+          }
+        : undefined,
+    },
   });
 };
 
@@ -27,8 +130,11 @@ const createAppointment = async (appointmentBody) => {
  * @returns {Promise<Object>}
  */
 const queryAppointments = async (filter, options = {}) => {
-  const { limit = 10, page = 1, sortBy, populate } = options;
+  const page = Number(options.page) || 1;
+  const limit = Number(options.limit) || 10;
+  const { sortBy, populate } = options;
   const skip = (page - 1) * limit;
+  const whereFilter = normalizeAppointmentFilter(filter);
 
   let include = {};
   if (populate) {
@@ -51,14 +157,14 @@ const queryAppointments = async (filter, options = {}) => {
   }
 
   const results = await prisma.appointment.findMany({
-    where: filter,
+    where: whereFilter,
     take: limit,
     skip,
     orderBy,
     include: Object.keys(include).length > 0 ? include : undefined,
   });
 
-  const totalResults = await prisma.appointment.count({ where: filter });
+  const totalResults = await prisma.appointment.count({ where: whereFilter });
   const totalPages = Math.ceil(totalResults / limit);
 
   return {
@@ -100,16 +206,19 @@ const updateAppointmentById = async (appointmentId, updateBody) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Appointment not found');
   }
 
-  const { drinks, ...data } = updateBody;
+  const normalizedPayload = await normalizeAppointmentPayload(updateBody);
+  const { drinks: drinkIds, ...data } = normalizedPayload;
 
   return prisma.appointment.update({
     where: { id: appointmentId },
     data: {
       ...data,
-      drinks: drinks ? {
-        set: drinks.map(id => ({ id }))
-      } : undefined
-    }
+      drinks: drinkIds
+        ? {
+            set: drinkIds.map((id) => ({ id })),
+          }
+        : undefined,
+    },
   });
 };
 
@@ -141,7 +250,7 @@ const payAppointmentById = async (appointmentId) => {
   }
   return prisma.appointment.update({
     where: { id: appointmentId },
-    data: { status: 'Paid' }
+    data: { paymentStatus: 'Paid' },
   });
 };
 

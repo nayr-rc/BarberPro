@@ -1,4 +1,5 @@
 const httpStatus = require('http-status');
+const bcrypt = require('bcryptjs');
 const pick = require('../utils/pick');
 const ApiError = require('../utils/ApiError');
 const catchAsync = require('../utils/catchAsync');
@@ -10,46 +11,26 @@ const createUser = catchAsync(async (req, res) => {
 });
 
 const getUsers = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['email', 'role']);
+  const filter = pick(req.query, ['email', 'role', 'firstName', 'lastName']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   const result = await userService.queryUsers(filter, options);
   res.send(result);
 });
 
 const getUser = catchAsync(async (req, res) => {
-  // Fetch the user by ID
   const user = await userService.getUserById(req.params.userId);
 
-  // Check if user is not found
-  if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
-  }
-
-  // If the user is a barber, allow public access
-  if (user.role === 'barber') {
-    return res.send(user);
-  }
-
-  // Ensure that either req.user or user object itself can be used to authorize
-  const requester = req.user || user;
-
-  if (!requester) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Unauthorized access');
-  }
-
-  // Check if the requesting user has the necessary permissions
-  if (requester.role !== 'admin' && requester.id !== req.params.userId) {
+  if (req.user.role !== 'admin' && req.user.id !== req.params.userId && user.role !== 'barber') {
     throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden');
   }
 
-  // If the user has the required permissions or is accessing their own profile, return the user data
   res.send(user);
 });
 
 const getBarbers = catchAsync(async (req, res) => {
-  // Ensure you query the barbers with the correct filter and return the result in the expected format
-  const result = await userService.queryUsers({ role: 'barber' }, {});
-  res.send(result); // Directly sending the query result which includes pagination info
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  const result = await userService.queryUsers({ role: 'barber' }, options);
+  res.send(result);
 });
 
 const changePassword = catchAsync(async (req, res) => {
@@ -61,7 +42,6 @@ const changePassword = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  const bcrypt = require('bcryptjs');
   const isMatch = await bcrypt.compare(currentPassword, user.password);
   if (!isMatch) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Incorrect current password');

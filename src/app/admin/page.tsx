@@ -8,11 +8,9 @@ import {
   Users,
   Scissors,
   Coffee,
-  UserSquare2,
   Settings,
   LogOut,
   TrendingUp,
-  Clock,
   CheckCircle,
   ScissorsLineDashed,
   LayoutDashboard,
@@ -20,11 +18,11 @@ import {
 } from "lucide-react";
 
 export default function AdminDashboard() {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, logout } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
-    const isAdmin = user?.role === "admin" || user?.email?.toLowerCase().includes("narsie454");
+    const isAdmin = user?.role === "admin";
 
     if (!isAuthenticated) {
       router.push("/auth/login");
@@ -34,11 +32,8 @@ export default function AdminDashboard() {
   }, [isAuthenticated, user, router]);
 
   const handleLogout = () => {
+    logout();
     router.push("/");
-    setTimeout(() => {
-      useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
-      localStorage.removeItem("token");
-    }, 100);
   };
 
   return (

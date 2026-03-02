@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { AlertTriangle, RefreshCw, LogOut, Clock } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface SubscriptionGuardProps {
@@ -30,8 +30,7 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
     if (!isAuthenticated || !user) return null;
 
     // Admin sempre passa
-    const isAdmin = user.role === "admin" ||
-        user.email?.toLowerCase()?.includes("narsie454");
+    const isAdmin = user.role === "admin";
 
     if (isAdmin) return <>{children}</>;
 

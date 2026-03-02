@@ -1,10 +1,13 @@
 import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 
-const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder');
-
 export async function POST(request: Request) {
     try {
+        if (!process.env.RESEND_API_KEY) {
+            return NextResponse.json({ error: 'RESEND_API_KEY não configurada' }, { status: 500 });
+        }
+
+        const resend = new Resend(process.env.RESEND_API_KEY);
         const { to, subject, html } = await request.json();
 
         if (!to || !subject || !html) {
@@ -21,8 +24,14 @@ export async function POST(request: Request) {
         if (error) throw error;
 
         return NextResponse.json({ success: true, data });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Erro ao enviar e-mail:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+
+        const message =
+            error instanceof Error
+                ? error.message
+                : 'Falha inesperada ao enviar e-mail';
+
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

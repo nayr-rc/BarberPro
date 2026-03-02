@@ -1,25 +1,32 @@
 const Joi = require('joi');
 
 const createDrink = {
-    body: Joi.object().keys({
-        name: Joi.string().required(),
-        price: Joi.number().required(),
-        active: Joi.boolean(),
-    }),
+  body: Joi.object().keys({
+    name: Joi.string().required(),
+    price: Joi.number().required(),
+    active: Joi.boolean(),
+  }),
 };
 
 const updateDrink = {
-    params: Joi.object().keys({
-        drinkId: Joi.string().required(),
-    }),
-    body: Joi.object().keys({
-        name: Joi.string(),
-        price: Joi.number(),
-        active: Joi.boolean(),
-    }),
+  params: Joi.object().keys({
+    drinkId: Joi.string().required(),
+  }),
+  body: Joi.object().keys({
+    name: Joi.string(),
+    price: Joi.number(),
+    active: Joi.boolean(),
+  }),
+};
+
+const deleteDrink = {
+  params: Joi.object().keys({
+    drinkId: Joi.string().required(),
+  }),
 };
 
 module.exports = {
-    createDrink,
-    updateDrink,
+  createDrink,
+  updateDrink,
+  deleteDrink,
 };

@@ -1,24 +1,41 @@
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
+const pick = require('../utils/pick');
+const ApiError = require('../utils/ApiError');
 const { reviewService } = require('../services');
 
 const createReview = catchAsync(async (req, res) => {
-  const review = await reviewService.createReview(req.body);
+  const review = await reviewService.createReview({
+    ...req.body,
+    serviceTypeId: req.body.serviceTypeId || req.body.serviceType,
+  });
   res.status(httpStatus.CREATED).send(review);
 });
 
 const getReviews = catchAsync(async (req, res) => {
-  const reviews = await reviewService.getReviews(req.query);
+  const filter = pick(req.query, [
+    'userId',
+    'barberId',
+    'serviceTypeId',
+    'serviceType',
+    'appointmentId',
+    'name',
+    'rating',
+    'title',
+    'text',
+  ]);
+  const options = pick(req.query, ['sortBy', 'limit', 'page', 'populate']);
+  const reviews = await reviewService.getReviews(filter, options);
   res.status(httpStatus.OK).send(reviews);
 });
 
 const getReview = catchAsync(async (req, res) => {
   const review = await reviewService.getReviewById(req.params.reviewId);
   if (!review) {
-    res.status(httpStatus.NOT_FOUND).send({ message: 'Review not found' });
-  } else {
-    res.status(httpStatus.OK).send(review);
+    throw new ApiError(httpStatus.NOT_FOUND, 'Review not found');
   }
+
+  res.status(httpStatus.OK).send(review);
 });
 
 const updateReview = catchAsync(async (req, res) => {

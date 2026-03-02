@@ -43,12 +43,19 @@ export default function RegisterPage() {
       const token = tokens.access.token;
 
       login(user, token);
-      localStorage.setItem("token", token);
 
       // Vai para o dashboard — o SubscriptionGuard mostrará a tela de pagamento pendente
       router.push("/barbeiro/dashboard");
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Erro ao criar conta");
+    } catch (err: unknown) {
+      const message =
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof (err as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : "Erro ao criar conta";
+
+      setError(message || "Erro ao criar conta");
     } finally {
       setIsLoading(false);
     }

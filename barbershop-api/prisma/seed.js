@@ -4,11 +4,13 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-    // Vamos criar/atualizar para ambos os casos para garantir que você entre
-    const emails = ['narsie454@gmail.com', 'narsie454@gmaill.com'];
-    const hashedPassword = await bcrypt.hash('admin123', 8);
+    const configuredEmails = process.env.SEED_ADMIN_EMAILS
+        ? process.env.SEED_ADMIN_EMAILS.split(',').map((email) => email.trim()).filter(Boolean)
+        : [process.env.SEED_ADMIN_EMAIL || 'admin@barberpro.com'];
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'admin12345';
+    const hashedPassword = await bcrypt.hash(adminPassword, 8);
 
-    for (const adminEmail of emails) {
+    for (const adminEmail of configuredEmails) {
         const admin = await prisma.user.upsert({
             where: { email: adminEmail },
             update: {
