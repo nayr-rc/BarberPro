@@ -40,6 +40,13 @@ google-service-account.json
 # vercel
 .vercel
 
+# deprecated
+backend_deprecated/
+
+# prisma database
+*.db
+*.db-journal
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

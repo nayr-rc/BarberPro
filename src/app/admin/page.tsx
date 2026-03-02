@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuthStore } from "@/hooks/useAuth";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import {
@@ -179,7 +179,7 @@ export default function AdminDashboard() {
             <div className="mt-4 pt-4 border-t border-white/5 w-full flex items-center text-xs text-barber-gold uppercase tracking-widest font-bold">Acessar <TrendingUp className="w-3 h-3 ml-2" /></div>
           </button>
 
-          <button className="flex flex-col text-left bg-gradient-to-b from-[#1a1a1a] to-[#141414] border border-white/5 rounded-2xl p-6 shadow-xl hover:-translate-y-1 hover:border-barber-gold/50 hover:shadow-barber-gold/10 transition-all duration-300 group">
+          <button onClick={() => router.push("/admin/assinaturas")} className="flex flex-col text-left bg-gradient-to-b from-[#1a1a1a] to-[#141414] border border-white/5 rounded-2xl p-6 shadow-xl hover:-translate-y-1 hover:border-barber-gold/50 hover:shadow-barber-gold/10 transition-all duration-300 group">
             <div className="h-12 w-12 bg-white/5 rounded-full flex items-center justify-center text-barber-gold mb-6 group-hover:scale-110 transition-transform group-hover:bg-barber-gold/10">
               <UserSquare2 className="w-6 h-6" />
             </div>

@@ -2,7 +2,7 @@ import { Calendar, Share2, Smartphone, Box, Users, HeadphonesIcon, TrendingUp, C
 
 export default function Features() {
     return (
-        <section id="features" className="w-full py-40 lg:py-48 bg-barber-black relative overflow-hidden flex flex-col items-center">
+        <section id="features" className="w-full py-64 lg:py-80 bg-barber-black relative overflow-hidden flex flex-col items-center">
             <div className="w-full max-w-7xl mx-auto px-6 flex flex-col items-center">
 
                 {/* Header Section */}

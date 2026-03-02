@@ -2,23 +2,25 @@ const express = require('express');
 const validate = require('../../middlewares/validate');
 const appointmentValidation = require('../../validations/appointment.validation');
 const appointmentController = require('../../controllers/appointment.controller');
+const auth = require('../../middlewares/auth');
+const checkSubscription = require('../../middlewares/checkSubscription');
 
 const router = express.Router();
 
 router
   .route('/')
-  .post(validate(appointmentValidation.createAppointment), appointmentController.createAppointment)
-  .get(validate(appointmentValidation.getAppointments), appointmentController.getAppointments);
+  .post(auth(), checkSubscription, validate(appointmentValidation.createAppointment), appointmentController.createAppointment)
+  .get(auth(), checkSubscription, validate(appointmentValidation.getAppointments), appointmentController.getAppointments);
 
 router
   .route('/:appointmentId')
-  .get(appointmentController.getAppointment)
-  .patch(validate(appointmentValidation.updateAppointment), appointmentController.updateAppointment)
-  .delete(validate(appointmentValidation.deleteAppointment), appointmentController.deleteAppointment);
+  .get(auth(), checkSubscription, appointmentController.getAppointment)
+  .patch(auth(), checkSubscription, validate(appointmentValidation.updateAppointment), appointmentController.updateAppointment)
+  .delete(auth(), checkSubscription, validate(appointmentValidation.deleteAppointment), appointmentController.deleteAppointment);
 
 router
   .route('/:appointmentId/pay')
-  .post(appointmentController.payAppointment);
+  .post(auth(), checkSubscription, appointmentController.payAppointment);
 
 module.exports = router;
 

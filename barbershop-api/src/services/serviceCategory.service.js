@@ -1,42 +1,48 @@
-const { ServiceCategory } = require('../models');
-const { Service } = require('../models');
+const prisma = require('../client');
 
 const createServiceCategory = async (serviceCategoryBody) => {
-  return ServiceCategory.create(serviceCategoryBody);
+  return prisma.serviceCategory.create({
+    data: serviceCategoryBody
+  });
 };
 
 const getServiceCategories = async (filter, options) => {
-  return ServiceCategory.paginate(filter, options);
+  const { limit = 10, page = 1, sortBy } = options;
+  const skip = (page - 1) * limit;
+
+  return prisma.serviceCategory.findMany({
+    where: filter,
+    take: limit,
+    skip,
+  });
 };
 
 const getServiceCategoryById = async (id) => {
-  return ServiceCategory.findById(id);
+  return prisma.serviceCategory.findUnique({
+    where: { id }
+  });
 };
 
 const updateServiceCategoryById = async (categoryId, updateBody) => {
-  const serviceCategory = await getServiceCategoryById(categoryId);
-  if (!serviceCategory) {
-    throw new Error('Service Category not found');
-  }
-  Object.assign(serviceCategory, updateBody);
-  await serviceCategory.save();
-  return serviceCategory;
+  return prisma.serviceCategory.update({
+    where: { id: categoryId },
+    data: updateBody
+  });
 };
 
 const deleteServiceCategoryById = async (categoryId) => {
-  const serviceCategory = await getServiceCategoryById(categoryId);
-  if (!serviceCategory) {
-    throw new Error('Service Category not found');
-  }
-
   // Check if there are any services associated with this category
-  const associatedServices = await Service.find({ category: categoryId });
-  if (associatedServices.length > 0) {
+  const associatedServices = await prisma.service.count({
+    where: { categoryId: categoryId }
+  });
+
+  if (associatedServices > 0) {
     throw new Error('Cannot delete service category with associated services. Please delete the services first.');
   }
 
-  await serviceCategory.remove();
-  return serviceCategory;
+  return prisma.serviceCategory.delete({
+    where: { id: categoryId }
+  });
 };
 
 module.exports = {

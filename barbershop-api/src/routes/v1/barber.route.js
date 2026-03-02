@@ -4,21 +4,22 @@ const barberValidation = require('../../validations/barber.validation');
 const barberController = require('../../controllers/barber.controller');
 const userController = require('../../controllers/user.controller');
 const auth = require('../../middlewares/auth');
+const checkSubscription = require('../../middlewares/checkSubscription');
 
 const router = express.Router();
 
-// Updated the path to '/v1/barbers' to match the API request
+// Rota pública: listar barbeiros para clientes agendarem
 router.route('/').get(userController.getBarbers);
 
 router
   .route('/:userId/assign')
-  .patch(auth('manageUsers'), validate(barberValidation.assignBarber), barberController.assignBarber);
+  .patch(auth('manageUsers'), checkSubscription, validate(barberValidation.assignBarber), barberController.assignBarber);
 
 router
   .route('/:userId/update')
-  .patch(auth('manageUsers'), validate(barberValidation.updateBarber), barberController.updateBarber);
+  .patch(auth('manageUsers'), checkSubscription, validate(barberValidation.updateBarber), barberController.updateBarber);
 
-router.route('/:userId/unassign').patch(auth('manageUsers'), barberController.unassignBarber);
+router.route('/:userId/unassign').patch(auth('manageUsers'), checkSubscription, barberController.unassignBarber);
 
 module.exports = router;
 

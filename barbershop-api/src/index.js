@@ -1,42 +1,26 @@
 // Fix for Node.js 22/23 Buffer compatibility
 global.Buffer = global.Buffer || require('buffer').Buffer;
 
-const mongoose = require('mongoose');
-const axios = require('axios'); // Add axios import
 const app = require('./app');
 const config = require('./config/config');
 const logger = require('./config/logger');
-
-// Set Mongoose 6 strictQuery option
-mongoose.set('strictQuery', false);
-
-// Set Mongoose 6 strictQuery option
-mongoose.set('strictQuery', false);
-
-const { MongoMemoryServer } = require('mongodb-memory-server');
+const prisma = require('./client');
 
 let server;
 
 const startServer = async () => {
-  let mongoUrl = config.mongoose.url;
+  try {
+    // Tenta conectar ao SQLite
+    await prisma.$connect();
+    logger.info('✅ Conectado ao SQLite via Prisma (Dados Persistentes)');
 
-  if (config.env === 'development' && mongoUrl.includes('127.0.0.1')) {
-    try {
-      logger.info('Tentando iniciar MongoDB em Memória para seu conforto...');
-      const mongoServer = await MongoMemoryServer.create();
-      mongoUrl = mongoServer.getUri();
-      logger.info(`✅ MongoDB em Memória rodando em: ${mongoUrl}`);
-    } catch (e) {
-      logger.error('Erro ao subir Mongo em memória, tentando conexão padrão...', e.message);
-    }
-  }
-
-  mongoose.connect(mongoUrl, config.mongoose.options).then(() => {
-    logger.info('Connected to MongoDB');
     server = app.listen(config.port, () => {
-      logger.info(`Listening to port ${config.port}`);
+      logger.info(`🚀 Servidor rodando na porta ${config.port}`);
     });
-  });
+  } catch (err) {
+    logger.error('❌ Falha ao iniciar o banco de dados SQLite:', err);
+    process.exit(1);
+  }
 };
 
 startServer();

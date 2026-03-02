@@ -33,11 +33,19 @@ export async function POST(request: Request) {
 
         const response = await calendar.events.insert({
             calendarId,
-            resource: event,
-            sendUpdates: 'all', // envia e-mail de notificação se o evento tiver attendees (opcional)
+            requestBody: event,
+            sendUpdates: 'all',
         });
 
-        return NextResponse.json({ success: true, eventId: response.data.id, htmlLink: response.data.htmlLink });
+        if (!response.data) {
+            throw new Error('Falha ao obter resposta do Google Calendar');
+        }
+
+        return NextResponse.json({
+            success: true,
+            eventId: response.data.id,
+            htmlLink: response.data.htmlLink
+        });
     } catch (error: any) {
         console.error('Erro ao criar evento:', error);
         return NextResponse.json({ error: error.message || 'Falha ao criar agendamento' }, { status: 500 });

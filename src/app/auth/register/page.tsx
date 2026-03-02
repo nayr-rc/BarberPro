@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import apiClient from "@/lib/api";
-import { useAuthStore } from "@/hooks/useAuth";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 interface RegisterForm {
   name: string;
@@ -45,7 +45,8 @@ export default function RegisterPage() {
       login(user, token);
       localStorage.setItem("token", token);
 
-      router.push("/admin");
+      // Vai para o dashboard — o SubscriptionGuard mostrará a tela de pagamento pendente
+      router.push("/barbeiro/dashboard");
     } catch (err: any) {
       setError(err.response?.data?.message || "Erro ao criar conta");
     } finally {

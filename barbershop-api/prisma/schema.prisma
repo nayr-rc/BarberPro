@@ -1,0 +1,127 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                        String   @id @default(uuid())
+  firstName                 String
+  lastName                  String
+  email                     String   @unique
+  contactNumber             String
+  password                  String
+  role                      String   @default("barber")
+  title                     String?
+  image                     String?
+  selectedUserId            String?
+  isEmailVerified           Boolean  @default(false)
+  emailNotificationsEnabled Boolean  @default(true)
+  pushNotificationsEnabled  Boolean  @default(true)
+  pushSubscription          String?
+  subscriptionStatus        String   @default("pending")
+  subscriptionExpiresAt     DateTime?
+  subscriptionActivatedAt   DateTime?
+  workingHours              String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  tokens                    Token[]
+  appointments              Appointment[] @relation("UserAppointments")
+  barberAppointments        Appointment[] @relation("BarberAppointments")
+  reviews                   Review[]      @relation("UserReviews")
+  barberReviews             Review[]      @relation("BarberReviews")
+}
+
+model Token {
+  id          Int      @id @default(autoincrement())
+  token       String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  type        String
+  expires     DateTime
+  blacklisted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+model ServiceCategory {
+  id        String    @id @default(uuid())
+  name      String
+  services  Service[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  appointments Appointment[]
+}
+
+model Service {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  price       Float
+  category    ServiceCategory @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  appointments Appointment[]
+  reviews      Review[]
+}
+
+model Drink {
+  id        String   @id @default(uuid())
+  name      String
+  price     Float
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  appointments Appointment[] @relation("AppointmentDrinks")
+}
+
+model Review {
+  id                 String   @id @default(uuid())
+  user               User     @relation("UserReviews", fields: [userId], references: [id])
+  userId             String
+  barber             User     @relation("BarberReviews", fields: [barberId], references: [id])
+  barberId           String
+  serviceType        Service  @relation(fields: [serviceTypeId], references: [id])
+  serviceTypeId      String
+  appointment        Appointment @relation(fields: [appointmentId], references: [id])
+  appointmentId      String
+  name               String
+  rating             Int
+  title              String
+  text               String
+  appointmentDateTime DateTime
+  date               DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Appointment {
+  id                  String   @id @default(uuid())
+  firstName           String
+  lastName            String
+  contactNumber       String
+  email               String
+  preferredHairdresser User     @relation("BarberAppointments", fields: [preferredHairdresserId], references: [id])
+  preferredHairdresserId String
+  serviceCategory     ServiceCategory @relation(fields: [serviceCategoryId], references: [id])
+  serviceCategoryId   String
+  serviceType         Service  @relation(fields: [serviceTypeId], references: [id])
+  serviceTypeId       String
+  additionalNotes     String?
+  user                User     @relation("UserAppointments", fields: [userId], references: [id])
+  userId              String
+  appointmentDateTime DateTime
+  drinks              Drink[]  @relation("AppointmentDrinks")
+  status              String   @default("Upcoming")
+  paymentStatus       String?
+  paymentExpiresAt    DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  reviews             Review[]
+}

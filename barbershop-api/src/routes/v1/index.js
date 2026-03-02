@@ -6,9 +6,10 @@ const drinkRoute = require('./drink.route');
 const availabilityRoute = require('./availability.route');
 const notificationRoute = require('./notification.route');
 const barberRoute = require('./barber.route');
-const serviceRoute = require('./service.route'); // Import the service route
-const serviceCategoryRoute = require('./serviceCategory.route'); // Import the service category route
+const serviceRoute = require('./service.route');
+const serviceCategoryRoute = require('./serviceCategory.route');
 const reviewRoute = require('./review.route');
+const subscriptionRoute = require('./subscription.route');
 const healthController = require('../../controllers/health.controller');
 const docsRoute = require('./docs.route');
 const config = require('../../config/config');
@@ -55,6 +56,10 @@ const defaultRoutes = [
   {
     path: '/reviews',
     route: reviewRoute,
+  },
+  {
+    path: '/subscription',
+    route: subscriptionRoute,
   },
   {
     path: '/health',

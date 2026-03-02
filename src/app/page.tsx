@@ -7,9 +7,9 @@ import Footer from "@/components/sections/Footer";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-barber-black text-white selection:bg-barber-gold selection:text-black flex flex-col items-center overflow-x-hidden">
+    <main className="min-h-screen bg-barber-black text-white selection:bg-barber-gold selection:text-black">
       <Navbar />
-      <div className="w-full">
+      <div className="mx-auto w-full max-w-screen-xl px-4 sm:px-6 lg:px-8 overflow-x-hidden">
         <Hero />
         <Features />
         <Pricing />

@@ -40,7 +40,7 @@ export default function Navbar({ isAppOrBooking = false }: NavbarProps) {
                     </Link>
                     {!isAppOrBooking && (
                         <Link href="#pricing" className="px-6 py-3 bg-barber-gold text-barber-black rounded hover:bg-white transition-all duration-300 font-bold text-[10px] tracking-[0.2em] uppercase">
-                            Teste Grátis
+                            Assinar Agora
                         </Link>
                     )}
                 </div>

@@ -2,49 +2,36 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: "class",
   theme: {
-    container: {
-      center: true,
-      padding: '2rem',
-    },
     extend: {
-      fontFamily: {
-        heading: ["var(--font-cinzel)", "serif"],
-        body: ["var(--font-poppins)", "sans-serif"],
-        display: ["var(--font-old-standard)", "serif"],
-      },
       colors: {
-        'barber': {
-          black: "#0D0D0D",     // Darker, more premium black
-          dark: "#1A1A1A",      // Secondary dark
-          gray: "#2A2A2A",      // Card backgrounds
-          gold: "#D4AF37",      // Classic gold
-          accent: "#C5A065",    // Muted gold for text/borders
-          light: "#F5F5F5",     // Off-white
-          white: "#FFFFFF",
-        }
+        barber: {
+          black: "#0A0A0A",
+          dark: "#121212",
+          gold: "#D4AF37",
+          "gold-dark": "#B8972E",
+          accent: "#10B981",
+        },
       },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'hero-pattern': "url('/pattern-dark.png')", // Placeholder for a pattern if needed
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
+        heading: ["Cinzel", "serif"], // Keep heading font if still used somewhere
+        body: ["Poppins", "sans-serif"],
       },
-      animation: {
-        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+      backdropBlur: {
+        xs: "2px",
       },
-      keyframes: {
-        fadeInUp: {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        }
-      }
+      boxShadow: {
+        "glass": "0 8px 32px rgba(0, 0, 0, 0.4)",
+      },
     },
   },
-  plugins: [],
-  darkMode: "class",
+  plugins: [], // Note: @tailwindcss/typography is not installed, so I am omitting it to avoid build errors.
 };
 
 export default config;

@@ -1,71 +1,59 @@
 @import "tailwindcss";
 
-:root {
-  --background: #0D0D0D;
-  --foreground: #FFFFFF;
+@theme {
+  --color-barber-black: #0A0A0A;
+  --color-barber-dark: #121212;
+  --color-barber-gold: #D4AF37;
+  --color-barber-gold-dark: #B8972E;
+  --color-barber-accent: #10B981;
+
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-cinzel);
+  --font-body: var(--font-poppins);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+@layer base {
+  body {
+    @apply bg-black text-white antialiased font-sans;
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    hyphens: auto;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .glass {
+    @apply bg-gray-900/70 backdrop-blur-xl border border-gray-700/50 shadow-2xl;
+  }
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@layer components {
+  .btn-gold {
+    @apply bg-gradient-to-r from-barber-gold to-amber-500 hover:brightness-110 text-black font-semibold py-3 px-6 rounded-2xl transition-all active:scale-[0.97];
+  }
+
+  .card-hover {
+    @apply transition-all hover:-translate-y-1 hover:shadow-xl;
+  }
 }
 
-html {
-  scroll-behavior: smooth;
+
+/* Animations... */
+
+/* Animations... */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-body {
-  background-color: #0D0D0D;
-  color: #FFFFFF;
-  line-height: 1.6;
-}
-
-/* Custom Selection */
-::selection {
-  background-color: #D4AF37; /* barber-gold */
-  color: #000000;
-}
-
-/* Scrollbar Styling - Premium Dark */
-::-webkit-scrollbar {
-  width: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: #1A1A1A;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #333333;
-  border: 2px solid #1A1A1A;
-  border-radius: 5px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #D4AF37;
-}
-
-/* Smooth Animations */
-.animate-slow-fade {
-  animation: fadeIn 2s ease-in;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* Utility for hover scale */
-.hover-lift {
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.hover-lift:hover {
-  transform: translateY(-5px);
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease-out forwards;
 }

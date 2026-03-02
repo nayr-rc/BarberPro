@@ -90,6 +90,19 @@ const userSchema = mongoose.Schema(
         endTime: { type: String, default: '19:00' },
       },
     ],
+    subscriptionStatus: {
+      type: String,
+      enum: ['pending', 'active', 'expired'],
+      default: 'pending',
+    },
+    subscriptionExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    subscriptionActivatedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
