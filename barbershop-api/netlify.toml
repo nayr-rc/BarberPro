@@ -1,0 +1,9 @@
+[build]
+  command = "npx prisma generate"
+  publish = "src"
+  functions = "src/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
