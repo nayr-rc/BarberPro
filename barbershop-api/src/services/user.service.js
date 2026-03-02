@@ -43,6 +43,18 @@ const createUser = async (userBody) => {
 
   if (data.role === 'barber') {
     data.subscriptionStatus = 'pending';
+    if (!data.workingHours) {
+      const defaultSchedule = [
+        { dayId: 0, dayLabel: "Domingo", isOpen: false, startTime: "09:00", endTime: "19:00" },
+        { dayId: 1, dayLabel: "Segunda-feira", isOpen: true, startTime: "09:00", endTime: "19:00" },
+        { dayId: 2, dayLabel: "Terça-feira", isOpen: true, startTime: "09:00", endTime: "19:00" },
+        { dayId: 3, dayLabel: "Quarta-feira", isOpen: true, startTime: "09:00", endTime: "19:00" },
+        { dayId: 4, dayLabel: "Quinta-feira", isOpen: true, startTime: "09:00", endTime: "19:00" },
+        { dayId: 5, dayLabel: "Sexta-feira", isOpen: true, startTime: "09:00", endTime: "19:00" },
+        { dayId: 6, dayLabel: "Sábado", isOpen: false, startTime: "09:00", endTime: "19:00" }
+      ];
+      data.workingHours = JSON.stringify(defaultSchedule);
+    }
   }
 
   const user = await prisma.user.create({
