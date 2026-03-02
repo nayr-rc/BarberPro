@@ -11,7 +11,25 @@ const apiClient = axios.create({
 
 // Add token to requests
 apiClient.interceptors.request.use((config) => {
-  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  // Priority: Try to get token from Zustand store first, then fallback to manual token key
+  let token = null;
+  if (typeof window !== "undefined") {
+    const authStorage = localStorage.getItem("barberpro-auth");
+    if (authStorage) {
+      try {
+        const parsed = JSON.parse(authStorage);
+        token = parsed.state?.token;
+      } catch (e) {
+        console.error("Error parsing auth storage", e);
+      }
+    }
+
+    // Fallback/Legacy
+    if (!token) {
+      token = localStorage.getItem("token");
+    }
+  }
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
