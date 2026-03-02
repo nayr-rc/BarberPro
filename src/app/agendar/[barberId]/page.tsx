@@ -63,20 +63,12 @@ export default function PaginaAgendar() {
                 const dataOccupied = await responseOccupied.json();
                 setOccupiedSlots(dataOccupied.occupied || []);
 
-                // 4. Load services
+                // 4. Load services (barber's configured service catalog)
                 const savedServices = localStorage.getItem(`barber_services_${barberId}`);
                 if (savedServices) {
                     const parsed = JSON.parse(savedServices);
                     setServices(parsed);
                     if (parsed.length > 0) setSelectedService(parsed[0]);
-                } else {
-                    const defaults = [
-                        { id: '1', title: 'Corte Social', price: 35 },
-                        { id: '2', title: 'Barba Completa', price: 25 },
-                        { id: '3', title: 'Corte + Barba', price: 50 },
-                    ];
-                    setServices(defaults);
-                    setSelectedService(defaults[0]);
                 }
             } catch (error) {
                 console.error("Erro ao carregar dados:", error);

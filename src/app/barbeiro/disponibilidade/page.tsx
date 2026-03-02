@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import apiClient from "@/lib/api";
 
 interface DayConfig {
     dayId: number; // 0-6 (Sun-Sat)
@@ -44,9 +45,7 @@ export default function DisponibilidadeBarbeiro() {
 
         const fetchSchedule = async () => {
             try {
-                // Simulate fetch OR real fetch
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/v1'}/availability?barberId=${user?.id}`);
-                const data = await res.json();
+                const { data } = await apiClient.get(`/availability?barberId=${user?.id}`);
                 if (data.schedule && data.schedule.length > 0) {
                     const fullSchedule = DAYS_NAMES.map((name, index) => {
                         const config = data.schedule.find((s: any) => s.dayId === index);
@@ -59,14 +58,9 @@ export default function DisponibilidadeBarbeiro() {
                         };
                     });
                     setSchedule(fullSchedule);
-                } else {
-                    const saved = localStorage.getItem(`barber_schedule_${user?.id}`);
-                    if (saved) setSchedule(JSON.parse(saved));
                 }
             } catch (err) {
-                console.warn("Erro ao carregar agenda. Usando local storage.");
-                const saved = localStorage.getItem(`barber_schedule_${user?.id}`);
-                if (saved) setSchedule(JSON.parse(saved));
+                console.warn("Erro ao carregar agenda:", err);
             }
         };
 
@@ -87,29 +81,20 @@ export default function DisponibilidadeBarbeiro() {
 
     const saveSchedule = async () => {
         setIsSaving(true);
-        localStorage.setItem(`barber_schedule_${user?.id}`, JSON.stringify(schedule));
-
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/v1'}/availability`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    barberId: user?.id,
-                    workingHours: schedule.map(({ dayId, isOpen, startTime, endTime }) => ({
-                        dayId, isOpen, startTime, endTime
-                    }))
-                })
+            await apiClient.post('/availability', {
+                barberId: user?.id,
+                workingHours: schedule.map(({ dayId, isOpen, startTime, endTime }) => ({
+                    dayId, isOpen, startTime, endTime
+                }))
             });
-
-            if (res.ok) {
-                console.log("Sincronizado");
-            }
-        } catch (err) {
-            console.error("Erro na sincronização:", err);
-        } finally {
-            setIsSaving(false);
             setShowSuccess(true);
             setTimeout(() => setShowSuccess(false), 3000);
+        } catch (err) {
+            console.error("Erro na sincronização:", err);
+            alert('Erro ao salvar. Tente novamente.');
+        } finally {
+            setIsSaving(false);
         }
     };
 
