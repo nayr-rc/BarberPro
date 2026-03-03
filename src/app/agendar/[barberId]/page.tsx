@@ -80,7 +80,7 @@ export default function PaginaAgendar() {
                 }
 
                 // 2. Get internal availability (Professional info + Database Schedule)
-                const responseAvailability = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/v1'}/availability?barberId=${barberId}&date=${selectedDate.toISOString()}`);
+                const responseAvailability = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://barberpro-api-v4kj.onrender.com/v1'}/availability?barberId=${barberId}&date=${selectedDate.toISOString()}`);
                 const dataAvailability = await responseAvailability.json();
 
                 setBarber(dataAvailability.barber);
