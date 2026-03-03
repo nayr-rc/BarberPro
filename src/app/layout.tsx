@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Inter, Cinzel, Poppins } from "next/font/google";
+import BackendKeepAlive from "@/components/BackendKeepAlive";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -34,6 +35,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className="dark" suppressHydrationWarning>
       <body className={`${inter.variable} ${cinzel.variable} ${poppins.variable} bg-black text-white antialiased`} suppressHydrationWarning>
+        <BackendKeepAlive />
         {children}
       </body>
     </html>
