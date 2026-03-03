@@ -32,6 +32,18 @@ const createAppointment = {
     .or('appointmentDateTime', 'datetimeStart'),
 };
 
+const createPublicAppointment = {
+  body: Joi.object().keys({
+    barberId: Joi.string().custom(objectId).required(),
+    serviceId: Joi.string().custom(objectId).required(),
+    datetimeStart: Joi.date().required(),
+    guestName: Joi.string().required(),
+    guestPhone: Joi.string().required(),
+    email: Joi.string().email().allow(''),
+    additionalNotes: Joi.string().allow(''),
+  }),
+};
+
 const updateAppointment = {
   params: Joi.object().keys({
     appointmentId: Joi.string().custom(objectId).required(),
@@ -102,6 +114,7 @@ const getAppointments = {
 
 module.exports = {
   createAppointment,
+  createPublicAppointment,
   updateAppointment,
   deleteAppointment,
   getAppointment,

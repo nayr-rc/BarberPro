@@ -86,7 +86,6 @@ const getAvailability = catchAsync(async (req, res) => {
       firstName: barber.firstName,
       lastName: barber.lastName,
       email: barber.email,
-      googleCalendarId: 'primary', // mock
     },
     availableSlots,
     schedule: parsedWorkingHours,

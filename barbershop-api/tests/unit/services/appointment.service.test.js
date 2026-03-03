@@ -3,6 +3,7 @@ const httpStatus = require('http-status');
 jest.mock('../../../src/client', () => ({
   appointment: {
     create: jest.fn(),
+    findFirst: jest.fn(),
     findMany: jest.fn(),
     count: jest.fn(),
     findUnique: jest.fn(),
@@ -23,6 +24,7 @@ describe('appointment.service', () => {
 
   test('createAppointment normalizes legacy payload keys', async () => {
     prisma.service.findUnique.mockResolvedValue({ categoryId: 'category-1' });
+    prisma.appointment.findFirst.mockResolvedValue(null);
     prisma.appointment.create.mockResolvedValue({ id: 'appointment-1' });
 
     await appointmentService.createAppointment({
@@ -55,6 +57,24 @@ describe('appointment.service', () => {
     await expect(appointmentService.createAppointment({ firstName: 'Joao' })).rejects.toMatchObject({
       statusCode: httpStatus.BAD_REQUEST,
     });
+  });
+
+  test('createAppointment throws conflict when slot already reserved', async () => {
+    prisma.service.findUnique.mockResolvedValue({ categoryId: 'category-1' });
+    prisma.appointment.findFirst.mockResolvedValue({ id: 'existing-appointment' });
+
+    await expect(
+      appointmentService.createAppointment({
+        firstName: 'Joao',
+        lastName: 'Silva',
+        contactNumber: '11999999999',
+        email: 'joao@barber.com',
+        userId: 'user-1',
+        preferredHairdresser: 'barber-1',
+        serviceType: 'service-1',
+        appointmentDateTime: new Date().toISOString(),
+      })
+    ).rejects.toMatchObject({ statusCode: httpStatus.CONFLICT });
   });
 
   test('queryAppointments normalizes legacy filters', async () => {

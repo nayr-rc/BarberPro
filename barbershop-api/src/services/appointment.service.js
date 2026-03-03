@@ -101,6 +101,21 @@ const assertRequiredCreateFields = (appointmentBody) => {
   }
 };
 
+const ensureSlotIsAvailable = async ({ preferredHairdresserId, appointmentDateTime }) => {
+  const conflictingAppointment = await prisma.appointment.findFirst({
+    where: {
+      preferredHairdresserId,
+      appointmentDateTime: new Date(appointmentDateTime),
+      status: { not: 'Cancelled' },
+    },
+    select: { id: true },
+  });
+
+  if (conflictingAppointment) {
+    throw new ApiError(httpStatus.CONFLICT, 'Este horário acabou de ser reservado. Escolha outro horário.');
+  }
+};
+
 /**
  * Create an appointment
  * @param {Object} appointmentBody
@@ -109,6 +124,7 @@ const assertRequiredCreateFields = (appointmentBody) => {
 const createAppointment = async (appointmentBody) => {
   const normalizedPayload = await normalizeAppointmentPayload(appointmentBody);
   assertRequiredCreateFields(normalizedPayload);
+  await ensureSlotIsAvailable(normalizedPayload);
   const { drinks: drinkIds, ...data } = normalizedPayload;
 
   return prisma.appointment.create({
@@ -136,7 +152,7 @@ const queryAppointments = async (filter, options = {}) => {
   const skip = (page - 1) * limit;
   const whereFilter = normalizeAppointmentFilter(filter);
 
-  let include = {};
+  const include = {};
   if (populate) {
     populate.split(',').forEach((p) => {
       const field = p.trim();
@@ -189,8 +205,8 @@ const getAppointmentById = async (id) => {
       serviceCategory: true,
       serviceType: true,
       drinks: true,
-      user: true
-    }
+      user: true,
+    },
   });
 };
 
@@ -233,7 +249,7 @@ const deleteAppointmentById = async (appointmentId) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Appointment not found');
   }
   await prisma.appointment.delete({
-    where: { id: appointmentId }
+    where: { id: appointmentId },
   });
   return appointment;
 };

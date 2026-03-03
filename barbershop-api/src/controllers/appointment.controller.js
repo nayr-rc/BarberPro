@@ -1,4 +1,5 @@
 const httpStatus = require('http-status');
+const { randomUUID } = require('crypto');
 const catchAsync = require('../utils/catchAsync');
 const ApiError = require('../utils/ApiError');
 const pick = require('../utils/pick');
@@ -15,6 +16,54 @@ const removeUndefined = (object) => {
   });
 
   return sanitized;
+};
+
+const splitGuestName = (name) => {
+  const [firstName, ...rest] = String(name || '')
+    .trim()
+    .split(/\s+/);
+  return {
+    firstName: firstName || 'Cliente',
+    lastName: rest.join(' ') || '-',
+  };
+};
+
+const getGuestIdentity = async ({ guestName, guestPhone, email }) => {
+  const normalizedEmail = email ? String(email).trim().toLowerCase() : '';
+  const parsedName = splitGuestName(guestName);
+
+  if (normalizedEmail) {
+    const existingUser = await userService.getUserByEmail(normalizedEmail);
+    if (existingUser) {
+      return {
+        userId: existingUser.id,
+        email: normalizedEmail,
+        firstName: parsedName.firstName,
+        lastName: parsedName.lastName,
+        contactNumber: guestPhone,
+      };
+    }
+  }
+
+  const fallbackEmail = normalizedEmail || `guest-${Date.now()}-${Math.floor(Math.random() * 10000)}@barberpro.local`;
+  const generatedPassword = `Guest${randomUUID().replace(/-/g, '').slice(0, 10)}1`;
+
+  const createdGuest = await userService.createUser({
+    firstName: parsedName.firstName,
+    lastName: parsedName.lastName,
+    contactNumber: guestPhone,
+    email: fallbackEmail,
+    password: generatedPassword,
+    role: 'customer',
+  });
+
+  return {
+    userId: createdGuest.id,
+    email: normalizedEmail || createdGuest.email,
+    firstName: parsedName.firstName,
+    lastName: parsedName.lastName,
+    contactNumber: guestPhone,
+  };
 };
 
 const createAppointment = catchAsync(async (req, res) => {
@@ -48,6 +97,33 @@ const createAppointment = catchAsync(async (req, res) => {
     userDetails: req.user,
     serviceDetails,
     notificationType: 'new_appointment',
+  });
+
+  res.status(httpStatus.CREATED).send(appointment);
+});
+
+const createPublicAppointment = catchAsync(async (req, res) => {
+  const { barberId, serviceId, datetimeStart, guestName, guestPhone, email, additionalNotes } = req.body;
+
+  const barber = await userService.getUserById(barberId);
+  if (barber.role !== 'barber') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Profissional inválido para agendamento');
+  }
+
+  const service = await serviceService.getServiceById(serviceId);
+  if (!service) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Serviço não encontrado');
+  }
+
+  const guestIdentity = await getGuestIdentity({ guestName, guestPhone, email });
+
+  const appointment = await appointmentService.createAppointment({
+    ...guestIdentity,
+    barberId,
+    serviceId,
+    datetimeStart,
+    additionalNotes,
+    status: 'Upcoming',
   });
 
   res.status(httpStatus.CREATED).send(appointment);
@@ -133,6 +209,7 @@ const payAppointment = catchAsync(async (req, res) => {
 
 module.exports = {
   createAppointment,
+  createPublicAppointment,
   getAppointments,
   getAppointment,
   updateAppointment,
