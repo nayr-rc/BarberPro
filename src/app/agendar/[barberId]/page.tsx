@@ -297,73 +297,21 @@ export default function PaginaAgendar() {
 
       bookingCreated = true;
 
-      // ── Notificação WhatsApp ao barbeiro ────────────────────────────────
-      try {
-        // Tenta usar o contactNumber já disponível no objeto barber.
-        // Se não disponível, busca o perfil completo do barbeiro na API.
-        let barberPhone = barber?.contactNumber || barber?.phone;
-
-        if (!barberPhone) {
-          const profileRes = await fetch(`${API_BASE_URL}/users/${parsedBarberId}`);
-          if (profileRes.ok) {
-            const profileData = await profileRes.json();
-            barberPhone = profileData?.contactNumber || profileData?.phone;
-          }
-        }
-
-        if (barberPhone) {
-          void fetch('/api/notify-whatsapp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              phone: barberPhone,
-              serviceName: selectedService.title,
-              dateTime: selectedSlot.start,
-              clientName: customerName,
-              clientPhone: customerPhone,
-            }),
-          });
-        }
-      } catch {
-        // Falha silenciosa — não bloqueia o agendamento
-      }
-
-      // ── Notificação por e-mail ao barbeiro ──────────────────────────────
-      try {
-        const notificationRecipient = barber?.email;
-        if (notificationRecipient) {
-          await fetch('/api/send-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: notificationRecipient,
-              subject: `Novo Agendamento: ${customerName}`,
-              html: `
-                <div style="font-family: sans-serif; background-color: #0D0D0D; color: #FFFFFF; padding: 40px; border-radius: 20px;">
-                  <h2 style="color: #D4AF37; text-transform: uppercase;">Novo Agendamento</h2>
-                  <p><strong>Cliente:</strong> ${customerName}</p>
-                  <p><strong>WhatsApp:</strong> ${customerPhone}</p>
-                  ${customerEmail ? `<p><strong>E-mail:</strong> ${customerEmail}</p>` : ''}
-                  <p><strong>Serviço:</strong> ${selectedService.title}</p>
-                  <p><strong>Duração:</strong> ${selectedService.durationMinutes} min</p>
-                  <p><strong>Valor:</strong> ${formatCurrency(selectedService.price)}</p>
-                  <p><strong>Horário:</strong> ${format(parseISO(selectedSlot.start), "dd/MM/yyyy 'às' HH:mm")}</p>
-                </div>
-              `,
-            }),
-          });
-        }
-      } catch {
-        // Não bloqueia o fluxo principal
-      }
+      // ── Redireciona para página de sucesso com dados do agendamento ───────
+      // O telefone do barbeiro é passado para que a página de sucesso
+      // gere um link wa.me para o cliente notificar o barbeiro com 1 clique.
+      const barberPhone = barber?.contactNumber || barber?.phone || '';
 
       const query = new URLSearchParams({
         barberId: parsedBarberId,
         barberName: `${barber?.firstName || ''} ${barber?.lastName || ''}`.trim() || 'Profissional',
+        barberPhone,
         serviceName: selectedService.title,
         serviceDuration: String(selectedService.durationMinutes),
         servicePrice: String(selectedService.price),
         datetimeStart: selectedSlot.start,
+        clientName: customerName,
+        clientPhone: customerPhone,
       });
 
       router.push(`/agendar/sucesso?${query.toString()}`);
