@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
@@ -12,7 +13,7 @@ const formatCurrency = (value: number) =>
     currency: 'BRL',
   }).format(value);
 
-export default function AgendamentoSucessoPage() {
+function AgendamentoSucessoConteudo() {
   const params = useSearchParams();
 
   const barberId = params.get('barberId') || '';
@@ -37,9 +38,7 @@ export default function AgendamentoSucessoPage() {
           <p className="text-xs uppercase tracking-[0.25em] font-bold">Agendamento confirmado</p>
         </div>
 
-        <h1 className="text-3xl md:text-4xl font-heading uppercase tracking-[0.08em] mb-3">
-          Tudo certo com sua reserva
-        </h1>
+        <h1 className="text-3xl md:text-4xl font-heading uppercase tracking-[0.08em] mb-3">Tudo certo com sua reserva</h1>
         <p className="text-sm text-gray-300 uppercase tracking-wider mb-8">
           Seu horário foi salvo com sucesso. Confira os detalhes abaixo.
         </p>
@@ -91,5 +90,23 @@ export default function AgendamentoSucessoPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function AgendamentoSucessoFallback() {
+  return (
+    <div className="min-h-screen bg-barber-black text-white font-body flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-white/[0.03] p-8 md:p-10 text-center">
+        <p className="text-xs uppercase tracking-[0.2em] text-barber-accent">Carregando detalhes do agendamento...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function AgendamentoSucessoPage() {
+  return (
+    <Suspense fallback={<AgendamentoSucessoFallback />}>
+      <AgendamentoSucessoConteudo />
+    </Suspense>
   );
 }
