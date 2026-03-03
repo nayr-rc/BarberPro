@@ -5,7 +5,7 @@ const prisma = require('../client');
 const ApiError = require('../utils/ApiError');
 
 const getAvailability = catchAsync(async (req, res) => {
-  const { barberId, date } = req.query;
+  const { barberId, date, serviceId, serviceDurationMinutes } = req.query;
   const selectedDate = date ? parseISO(date) : new Date();
 
   const barber = await prisma.user.findUnique({
@@ -47,6 +47,22 @@ const getAvailability = catchAsync(async (req, res) => {
   currentSlot = addMinutes(currentSlot, startH * 60 + startM);
   const workEnd = addMinutes(startOfDay(selectedDate), endH * 60 + endM);
 
+  let selectedServiceDuration = Number(serviceDurationMinutes) || 30;
+  const isServiceIdUuid =
+    typeof serviceId === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(serviceId);
+
+  if (isServiceIdUuid) {
+    const selectedService = await prisma.service.findUnique({
+      where: { id: serviceId },
+      select: { durationMinutes: true },
+    });
+
+    if (selectedService && selectedService.durationMinutes) {
+      selectedServiceDuration = selectedService.durationMinutes;
+    }
+  }
+
   // Fetch all appointments for the day
   const appointments = await prisma.appointment.findMany({
     where: {
@@ -57,27 +73,43 @@ const getAvailability = catchAsync(async (req, res) => {
       },
       status: { not: 'Cancelled' },
     },
+    include: {
+      serviceType: {
+        select: { durationMinutes: true },
+      },
+    },
   });
 
   const availableSlots = [];
   const now = new Date();
 
   while (isBefore(currentSlot, workEnd)) {
-    const slotEnd = addMinutes(currentSlot, 30);
+    const slotStart = new Date(currentSlot);
+    const slotEnd = addMinutes(currentSlot, selectedServiceDuration);
     const isPast = isAfter(now, currentSlot);
-    const currentSlotTime = currentSlot.getTime();
-    const isTaken = appointments.some((app) => {
-      const appDate = new Date(app.appointmentDateTime);
-      return appDate.getTime() === currentSlotTime;
-    });
+    let isTaken = false;
 
-    if (!isPast && !isTaken) {
+    for (let i = 0; i < appointments.length; i += 1) {
+      const app = appointments[i];
+      const appStart = new Date(app.appointmentDateTime);
+      const appDuration = app.serviceType && app.serviceType.durationMinutes ? app.serviceType.durationMinutes : 30;
+      const appEnd = addMinutes(appStart, appDuration);
+
+      if (slotStart < appEnd && slotEnd > appStart) {
+        isTaken = true;
+        break;
+      }
+    }
+
+    const exceedsWorkingHours = isAfter(slotEnd, workEnd);
+
+    if (!isPast && !isTaken && !exceedsWorkingHours) {
       availableSlots.push({
         start: currentSlot.toISOString(),
         end: slotEnd.toISOString(),
       });
     }
-    currentSlot = slotEnd;
+    currentSlot = addMinutes(currentSlot, 30);
   }
 
   res.send({
@@ -89,6 +121,7 @@ const getAvailability = catchAsync(async (req, res) => {
     },
     availableSlots,
     schedule: parsedWorkingHours,
+    slotDurationMinutes: selectedServiceDuration,
   });
 });
 

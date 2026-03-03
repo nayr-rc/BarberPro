@@ -449,7 +449,7 @@ describe('E2E - auth and appointments', () => {
 
     expect(secondLogout.body).toMatchObject({
       code: httpStatus.NOT_FOUND,
-      message: 'Not found',
+      message: 'Token de sessão não encontrado',
     });
   });
 
@@ -464,7 +464,7 @@ describe('E2E - auth and appointments', () => {
 
     expect(res.body).toMatchObject({
       code: httpStatus.UNAUTHORIZED,
-      message: 'Incorrect email or password',
+      message: 'E-mail ou senha inválidos',
     });
   });
 
@@ -610,7 +610,7 @@ describe('E2E - auth and appointments', () => {
 
     expect(res.body).toMatchObject({
       code: httpStatus.UNAUTHORIZED,
-      message: 'Please authenticate',
+      message: 'Faça login para continuar',
     });
   });
 

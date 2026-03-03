@@ -3,7 +3,6 @@ const httpStatus = require('http-status');
 jest.mock('../../../src/client', () => ({
   appointment: {
     create: jest.fn(),
-    findFirst: jest.fn(),
     findMany: jest.fn(),
     count: jest.fn(),
     findUnique: jest.fn(),
@@ -24,7 +23,7 @@ describe('appointment.service', () => {
 
   test('createAppointment normalizes legacy payload keys', async () => {
     prisma.service.findUnique.mockResolvedValue({ categoryId: 'category-1' });
-    prisma.appointment.findFirst.mockResolvedValue(null);
+    prisma.appointment.findMany.mockResolvedValue([]);
     prisma.appointment.create.mockResolvedValue({ id: 'appointment-1' });
 
     await appointmentService.createAppointment({
@@ -61,7 +60,13 @@ describe('appointment.service', () => {
 
   test('createAppointment throws conflict when slot already reserved', async () => {
     prisma.service.findUnique.mockResolvedValue({ categoryId: 'category-1' });
-    prisma.appointment.findFirst.mockResolvedValue({ id: 'existing-appointment' });
+    prisma.appointment.findMany.mockResolvedValue([
+      {
+        id: 'existing-appointment',
+        appointmentDateTime: new Date().toISOString(),
+        serviceType: { durationMinutes: 30 },
+      },
+    ]);
 
     await expect(
       appointmentService.createAppointment({

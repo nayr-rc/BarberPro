@@ -82,10 +82,48 @@ const deleteServiceById = async (serviceId) => {
   });
 };
 
+const findOrCreatePublicService = async ({ title, price = 0, durationMinutes = 30 }) => {
+  const normalizedTitle = String(title || '').trim();
+  if (!normalizedTitle) {
+    return null;
+  }
+
+  const existingService = await prisma.service.findFirst({
+    where: { title: normalizedTitle },
+  });
+
+  if (existingService) {
+    return existingService;
+  }
+
+  let defaultCategory = await prisma.serviceCategory.findFirst({
+    where: { name: 'Geral' },
+  });
+
+  if (!defaultCategory) {
+    defaultCategory = await prisma.serviceCategory.create({
+      data: { name: 'Geral' },
+    });
+  }
+
+  return prisma.service.create({
+    data: {
+      title: normalizedTitle,
+      description: 'Serviço criado automaticamente para agendamento público',
+      price: Number(price) || 0,
+      durationMinutes: Number(durationMinutes) || 30,
+      category: {
+        connect: { id: defaultCategory.id },
+      },
+    },
+  });
+};
+
 module.exports = {
   createService,
   getServices,
   getServiceById,
   updateServiceById,
   deleteServiceById,
+  findOrCreatePublicService,
 };

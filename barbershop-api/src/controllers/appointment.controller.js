@@ -7,6 +7,8 @@ const pick = require('../utils/pick');
 const { appointmentService, userService, serviceService } = require('../services');
 const { sendAppointmentNotificationToUser, sendAppointmentNotificationToBarber } = require('./notification.controller');
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const removeUndefined = (object) => {
   const sanitized = { ...object };
   Object.keys(sanitized).forEach((key) => {
@@ -103,14 +105,38 @@ const createAppointment = catchAsync(async (req, res) => {
 });
 
 const createPublicAppointment = catchAsync(async (req, res) => {
-  const { barberId, serviceId, datetimeStart, guestName, guestPhone, email, additionalNotes } = req.body;
+  const {
+    barberId,
+    serviceId,
+    serviceName,
+    servicePrice,
+    serviceDurationMinutes,
+    datetimeStart,
+    guestName,
+    guestPhone,
+    email,
+    additionalNotes,
+  } = req.body;
 
   const barber = await userService.getUserById(barberId);
   if (barber.role !== 'barber') {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Profissional inválido para agendamento');
   }
 
-  const service = await serviceService.getServiceById(serviceId);
+  let resolvedService = null;
+  if (serviceId && UUID_REGEX.test(serviceId)) {
+    resolvedService = await serviceService.getServiceById(serviceId);
+  }
+
+  if (!resolvedService && serviceName) {
+    resolvedService = await serviceService.findOrCreatePublicService({
+      title: serviceName,
+      price: servicePrice,
+      durationMinutes: serviceDurationMinutes,
+    });
+  }
+
+  const service = resolvedService;
   if (!service) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Serviço não encontrado');
   }
@@ -150,7 +176,7 @@ const getAppointments = catchAsync(async (req, res) => {
 const getAppointment = catchAsync(async (req, res) => {
   const appointment = await appointmentService.getAppointmentById(req.params.appointmentId);
   if (!appointment) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Appointment not found');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
   }
   res.send(appointment);
 });

@@ -33,15 +33,20 @@ const createAppointment = {
 };
 
 const createPublicAppointment = {
-  body: Joi.object().keys({
-    barberId: Joi.string().custom(objectId).required(),
-    serviceId: Joi.string().custom(objectId).required(),
-    datetimeStart: Joi.date().required(),
-    guestName: Joi.string().required(),
-    guestPhone: Joi.string().required(),
-    email: Joi.string().email().allow(''),
-    additionalNotes: Joi.string().allow(''),
-  }),
+  body: Joi.object()
+    .keys({
+      barberId: Joi.string().custom(objectId).required(),
+      serviceId: Joi.string(),
+      serviceName: Joi.string(),
+      servicePrice: Joi.number().min(0),
+      serviceDurationMinutes: Joi.number().integer().min(15).max(240),
+      datetimeStart: Joi.date().required(),
+      guestName: Joi.string().required(),
+      guestPhone: Joi.string().required(),
+      email: Joi.string().email().allow(''),
+      additionalNotes: Joi.string().allow(''),
+    })
+    .or('serviceId', 'serviceName'),
 };
 
 const updateAppointment = {

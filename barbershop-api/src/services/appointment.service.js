@@ -1,4 +1,5 @@
 const httpStatus = require('http-status');
+const { addMinutes, endOfDay, startOfDay } = require('date-fns');
 const ApiError = require('../utils/ApiError');
 const prisma = require('../client');
 
@@ -97,18 +98,45 @@ const assertRequiredCreateFields = (appointmentBody) => {
   const missingFields = requiredFields.filter((field) => !appointmentBody[field]);
 
   if (missingFields.length) {
-    throw new ApiError(httpStatus.BAD_REQUEST, `Missing required appointment fields: ${missingFields.join(', ')}`);
+    throw new ApiError(httpStatus.BAD_REQUEST, `Campos obrigatórios ausentes no agendamento: ${missingFields.join(', ')}`);
   }
 };
 
-const ensureSlotIsAvailable = async ({ preferredHairdresserId, appointmentDateTime }) => {
-  const conflictingAppointment = await prisma.appointment.findFirst({
+const ensureSlotIsAvailable = async ({ preferredHairdresserId, appointmentDateTime, serviceTypeId }) => {
+  const requestedStart = new Date(appointmentDateTime);
+
+  const existingAppointments = await prisma.appointment.findMany({
     where: {
       preferredHairdresserId,
-      appointmentDateTime: new Date(appointmentDateTime),
+      appointmentDateTime: {
+        gte: startOfDay(requestedStart),
+        lte: endOfDay(requestedStart),
+      },
       status: { not: 'Cancelled' },
     },
-    select: { id: true },
+    include: {
+      serviceType: {
+        select: { durationMinutes: true },
+      },
+    },
+  });
+
+  const requestedService = await prisma.service.findUnique({
+    where: { id: String(serviceTypeId || '') },
+    select: { durationMinutes: true },
+  });
+
+  const requestedDurationMinutes =
+    requestedService && requestedService.durationMinutes ? requestedService.durationMinutes : 30;
+  const requestedEnd = addMinutes(requestedStart, requestedDurationMinutes);
+
+  const conflictingAppointment = existingAppointments.find((appointment) => {
+    const appointmentStart = new Date(appointment.appointmentDateTime);
+    const appointmentDurationMinutes =
+      appointment.serviceType && appointment.serviceType.durationMinutes ? appointment.serviceType.durationMinutes : 30;
+    const appointmentEnd = addMinutes(appointmentStart, appointmentDurationMinutes);
+
+    return requestedStart < appointmentEnd && requestedEnd > appointmentStart;
   });
 
   if (conflictingAppointment) {
@@ -219,7 +247,7 @@ const getAppointmentById = async (id) => {
 const updateAppointmentById = async (appointmentId, updateBody) => {
   const appointment = await getAppointmentById(appointmentId);
   if (!appointment) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Appointment not found');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
   }
 
   const normalizedPayload = await normalizeAppointmentPayload(updateBody);
@@ -246,7 +274,7 @@ const updateAppointmentById = async (appointmentId, updateBody) => {
 const deleteAppointmentById = async (appointmentId) => {
   const appointment = await getAppointmentById(appointmentId);
   if (!appointment) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Appointment not found');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
   }
   await prisma.appointment.delete({
     where: { id: appointmentId },
@@ -262,7 +290,7 @@ const deleteAppointmentById = async (appointmentId) => {
 const payAppointmentById = async (appointmentId) => {
   const appointment = await getAppointmentById(appointmentId);
   if (!appointment) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Appointment not found');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
   }
   return prisma.appointment.update({
     where: { id: appointmentId },

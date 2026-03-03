@@ -25,7 +25,7 @@ const isEmailTaken = async (email, excludeUserId) => {
  */
 const createUser = async (userBody) => {
   if (await isEmailTaken(userBody.email)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Este e-mail já está em uso');
   }
 
   // Handle JSON fields for SQLite
@@ -121,7 +121,7 @@ const getUserById = async (id, requester = null) => {
     where: { id },
   });
   if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Usuário não encontrado');
   }
 
   // If requester is provided, check permissions
@@ -132,7 +132,7 @@ const getUserById = async (id, requester = null) => {
     }
     // If the requester is not an admin or the user themselves, restrict access
     if (requester.role !== 'admin' && user.id !== requester.id) {
-      throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden');
+      throw new ApiError(httpStatus.FORBIDDEN, 'Acesso negado');
     }
   }
 
@@ -159,7 +159,7 @@ const getUserByEmail = async (email) => {
 const updateUserById = async (userId, updateBody) => {
   await getUserById(userId);
   if (updateBody.email && (await isEmailTaken(updateBody.email, userId))) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Este e-mail já está em uso');
   }
 
   const data = { ...updateBody };
