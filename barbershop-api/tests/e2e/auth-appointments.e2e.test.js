@@ -252,6 +252,10 @@ jest.mock('../../src/client', () => {
       count: jest.fn(
         async ({ where = {} } = {}) => state.categories.filter((category) => matchesWhere(category, where)).length
       ),
+      findFirst: jest.fn(async ({ where = {} } = {}) => {
+        const found = state.categories.find((category) => matchesWhere(category, where));
+        return found ? clone(found) : null;
+      }),
       findUnique: jest.fn(async ({ where } = {}) => {
         const [field] = Object.keys(where || {});
         const found = state.categories.find((category) => category[field] === where[field]);
@@ -283,12 +287,17 @@ jest.mock('../../src/client', () => {
           title: data.title,
           description: data.description,
           price: data.price,
+          durationMinutes: data.durationMinutes || 30,
           categoryId,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
         state.services.push(service);
         return clone(service);
+      }),
+      findFirst: jest.fn(async ({ where = {} } = {}) => {
+        const found = state.services.find((service) => matchesWhere(service, where));
+        return found ? clone(found) : null;
       }),
       findMany: jest.fn(async ({ where = {}, orderBy = {}, skip = 0, take = state.services.length, include } = {}) => {
         const filtered = state.services.filter((service) => matchesWhere(service, where));
@@ -592,6 +601,32 @@ describe('E2E - auth and appointments', () => {
       status: 'Upcoming',
     });
     expect(response.body.userId).toBeTruthy();
+  });
+
+  test('creates public appointment using service name fallback when serviceId is absent', async () => {
+    const barberAuth = await registerAndLogin({ role: 'barber' });
+
+    const appointmentDate = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
+    const response = await request(app)
+      .post('/v1/appointments/public')
+      .send({
+        barberId: barberAuth.user.id,
+        serviceName: 'Galope no meu colo',
+        servicePrice: 30,
+        serviceDurationMinutes: 45,
+        datetimeStart: appointmentDate,
+        guestName: 'Ryan',
+        guestPhone: '71987796154',
+        email: '',
+      })
+      .expect(httpStatus.CREATED);
+
+    expect(response.body).toMatchObject({
+      preferredHairdresserId: barberAuth.user.id,
+      serviceCategoryId: expect.any(String),
+      serviceTypeId: expect.any(String),
+      status: 'Upcoming',
+    });
   });
 
   test('blocks barber with pending subscription from appointments route', async () => {

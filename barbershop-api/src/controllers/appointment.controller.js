@@ -146,7 +146,8 @@ const createPublicAppointment = catchAsync(async (req, res) => {
   const appointment = await appointmentService.createAppointment({
     ...guestIdentity,
     barberId,
-    serviceId,
+    serviceId: service.id,
+    serviceCategoryId: service.categoryId,
     datetimeStart,
     additionalNotes,
     status: 'Upcoming',
