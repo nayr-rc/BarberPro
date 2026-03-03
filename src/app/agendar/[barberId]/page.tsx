@@ -62,6 +62,8 @@ export default function PaginaAgendar() {
     const [customerPhone, setCustomerPhone] = useState('');
     const [customerEmail, setCustomerEmail] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [bookingError, setBookingError] = useState<string | null>(null);
+    const [bookingSuccess, setBookingSuccess] = useState(false);
 
     useEffect(() => {
         // Generate next 14 days once on mount
@@ -168,7 +170,11 @@ export default function PaginaAgendar() {
 
     const confirmBooking = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedSlot || !customerName || !customerPhone) return;
+        setBookingError(null);
+        if (!selectedSlot || !customerName || !customerPhone) {
+            setBookingError('Preencha todos os campos obrigatórios.');
+            return;
+        }
 
         setIsSubmitting(true);
         const start = selectedSlot.start;
@@ -192,20 +198,20 @@ export default function PaginaAgendar() {
 
             const data = await res.json();
 
-                if (res.ok) {
-                    alert('Horário marcado com sucesso! 🎉');
+            if (res.ok) {
+                setBookingSuccess(true);
 
-                    // Email notification
-                    try {
-                        const notificationRecipient = barber?.email;
-                        if (notificationRecipient) {
-                            await fetch('/api/send-email', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    to: notificationRecipient,
-                                    subject: `Novo Agendamento: ${customerName}`,
-                                    html: `
+                // Email notification
+                try {
+                    const notificationRecipient = barber?.email;
+                    if (notificationRecipient) {
+                        await fetch('/api/send-email', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: notificationRecipient,
+                                subject: `Novo Agendamento: ${customerName}`,
+                                html: `
                                         <div style="font-family: sans-serif; background-color: #0D0D0D; color: #FFFFFF; padding: 40px; border-radius: 20px;">
                                           <h2 style="color: #D4AF37; text-transform: uppercase;">Novo Agendamento</h2>
                                           <p><strong>Cliente:</strong> ${customerName}</p>
@@ -219,22 +225,26 @@ export default function PaginaAgendar() {
                                           </div>
                                         </div>
                                     `
-                                }),
-                            });
-                        }
+                            }),
+                        });
+                    }
                 } catch { }
 
-                setIsModalOpen(false);
-                setCustomerName('');
-                setCustomerPhone('');
-                setCustomerEmail('');
-                router.refresh();
-                window.location.reload();
+                setTimeout(() => {
+                    setIsModalOpen(false);
+                    setBookingSuccess(false);
+                    setCustomerName('');
+                    setCustomerPhone('');
+                    setCustomerEmail('');
+                    router.refresh();
+                    window.location.reload();
+                }, 2000);
             } else {
-                alert('Erro: ' + data.error);
+                setBookingError(data.error || 'Erro ao confirmar agendamento.');
             }
-        } catch {
-            alert('Erro na conexão.');
+        } catch (err: any) {
+            setBookingError('Erro de conexão. Verifique sua internet e tente novamente.');
+            console.error(err);
         } finally {
             setIsSubmitting(false);
         }
@@ -452,12 +462,31 @@ export default function PaginaAgendar() {
                             </div>
 
                             <div className="pt-6">
+                                {/* Error Message */}
+                                {bookingError && (
+                                    <div className="mb-4 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-sm text-center font-bold uppercase tracking-widest animate-in fade-in">
+                                        ⚠️ {bookingError}
+                                    </div>
+                                )}
+
+                                {/* Success Message */}
+                                {bookingSuccess && (
+                                    <div className="mb-4 p-4 bg-green-500/10 border border-green-500/30 rounded-2xl text-green-400 text-sm text-center font-bold uppercase tracking-widest animate-in fade-in">
+                                        ✅ Horário confirmado com sucesso!
+                                    </div>
+                                )}
+
                                 <button
                                     type="submit"
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || bookingSuccess}
                                     className="w-full bg-barber-gold hover:bg-white text-barber-black py-6 rounded-2xl font-bold uppercase tracking-[0.4em] text-base transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-4 shadow-[0_10px_30px_rgba(212,175,55,0.15)] group"
                                 >
-                                    {isSubmitting ? (
+                                    {bookingSuccess ? (
+                                        <div className="flex items-center gap-3">
+                                            <CheckCircle2 size={20} />
+                                            <span>CONFIRMADO!</span>
+                                        </div>
+                                    ) : isSubmitting ? (
                                         <div className="flex items-center gap-3">
                                             <div className="w-5 h-5 border-2 border-barber-black/30 border-t-barber-black rounded-full animate-spin"></div>
                                             <span>PROCESSANDO...</span>

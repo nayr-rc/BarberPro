@@ -88,7 +88,7 @@ export default function Dashboard() {
                                 <Button
                                     onClick={handleCopyLink}
                                     variant={copied ? "gold" : "outline"}
-                                    className={`min-h-[48px] px-6 py-2 rounded-xl transition-all duration-500 border-none ${copied ? 'bg-emerald-500 text-black' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'}`}
+                                    className={`min-h-[48px] px-6 py-2 rounded-xl transition-all duration-500 border-none whitespace-nowrap shrink-0 ${copied ? 'bg-emerald-500 text-black' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'}`}
                                 >
                                     {copied ? (
                                         <><Check size={16} className="mr-2" /> Copiado</>

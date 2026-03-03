@@ -43,9 +43,9 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const message =
         typeof err === "object" &&
-        err !== null &&
-        "response" in err &&
-        typeof (err as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
+          err !== null &&
+          "response" in err &&
+          typeof (err as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : "Credenciais inválidas. Tente novamente.";
 
@@ -65,7 +65,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-4xl font-black uppercase tracking-tighter">Barber<span className="text-barber-gold">Pro</span></h1>
           <p className="text-[10px] items-center justify-center font-black tracking-[0.4em] text-gray-500 uppercase mt-2 border-t border-white/5 pt-2 inline-flex gap-2">
-            Professional Management 2026
+            Gestão Profissional 2026
           </p>
         </div>
 
