@@ -75,7 +75,9 @@ describe('service.service', () => {
       where: { id: 'service-1' },
       data: {
         title: 'Corte + Barba',
-        categoryId: 'category-2',
+        category: {
+          connect: { id: 'category-2' },
+        },
       },
     });
   });

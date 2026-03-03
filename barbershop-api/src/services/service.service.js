@@ -15,7 +15,7 @@ const getOrCreateDefaultCategory = async () => {
 };
 
 const createService = async (serviceBody) => {
-  const { category, categoryId, ...data } = serviceBody;
+  const { category, categoryId, barberId, ...data } = serviceBody;
   let resolvedCategoryId = categoryId || category;
 
   if (!resolvedCategoryId) {
@@ -29,6 +29,7 @@ const createService = async (serviceBody) => {
       category: {
         connect: { id: resolvedCategoryId },
       },
+      ...(barberId ? { barber: { connect: { id: barberId } } } : {}),
     },
   });
 };
@@ -89,14 +90,20 @@ const getServiceById = async (id) => {
 };
 
 const updateServiceById = async (serviceId, updateBody) => {
-  const { category, categoryId, ...data } = updateBody;
+  const { category, categoryId, barberId, ...data } = updateBody;
   const resolvedCategoryId = categoryId || category;
+
+  let barberRelationUpdate = {};
+  if (barberId !== undefined) {
+    barberRelationUpdate = barberId ? { barber: { connect: { id: barberId } } } : { barber: { disconnect: true } };
+  }
 
   return prisma.service.update({
     where: { id: serviceId },
     data: {
       ...data,
-      ...(resolvedCategoryId ? { categoryId: resolvedCategoryId } : {}),
+      ...(resolvedCategoryId ? { category: { connect: { id: resolvedCategoryId } } } : {}),
+      ...barberRelationUpdate,
     },
   });
 };
@@ -132,10 +139,10 @@ const findOrCreatePublicService = async ({ title, price = 0, durationMinutes = 3
       description: 'Serviço criado automaticamente para agendamento público',
       price: Number(price) || 0,
       durationMinutes: Number(durationMinutes) || 30,
-      barberId,
       category: {
         connect: { id: defaultCategory.id },
       },
+      ...(barberId ? { barber: { connect: { id: barberId } } } : {}),
     },
   });
 };
