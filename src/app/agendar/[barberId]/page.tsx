@@ -97,6 +97,7 @@ export default function PaginaAgendar() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [barberPhone, setBarberPhone] = useState('');
 
   const parsedBarberId = String(barberId || '');
   const selectedDurationMinutes = selectedService?.durationMinutes || 30;
@@ -145,6 +146,24 @@ export default function PaginaAgendar() {
     if (parsedBarberId) {
       void fetchServices();
     }
+  }, [parsedBarberId]);
+
+  // Busca o telefone do barbeiro diretamente no perfil (a API de availability
+  // não retorna o contactNumber, então precisamos de um fetch separado).
+  useEffect(() => {
+    if (!parsedBarberId) return;
+    const fetchBarberPhone = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/users/${parsedBarberId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const phone: string = data?.contactNumber || data?.phone || '';
+        if (phone) setBarberPhone(phone);
+      } catch {
+        // Falha silenciosa — o botão do WhatsApp simplesmente não aparece
+      }
+    };
+    void fetchBarberPhone();
   }, [parsedBarberId]);
 
   useEffect(() => {
@@ -297,15 +316,11 @@ export default function PaginaAgendar() {
 
       bookingCreated = true;
 
-      // ── Redireciona para página de sucesso com dados do agendamento ───────
-      // O telefone do barbeiro é passado para que a página de sucesso
-      // gere um link wa.me para o cliente notificar o barbeiro com 1 clique.
-      const barberPhone = barber?.contactNumber || barber?.phone || '';
-
+      // ── Redireciona para página de sucesso ───────────────────────────────
       const query = new URLSearchParams({
         barberId: parsedBarberId,
         barberName: `${barber?.firstName || ''} ${barber?.lastName || ''}`.trim() || 'Profissional',
-        barberPhone,
+        barberPhone,         // telefone buscado do perfil do barbeiro
         serviceName: selectedService.title,
         serviceDuration: String(selectedService.durationMinutes),
         servicePrice: String(selectedService.price),
