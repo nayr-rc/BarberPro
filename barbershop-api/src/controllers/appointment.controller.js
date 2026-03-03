@@ -126,6 +126,10 @@ const createPublicAppointment = catchAsync(async (req, res) => {
   let resolvedService = null;
   if (serviceId && UUID_REGEX.test(serviceId)) {
     resolvedService = await serviceService.getServiceById(serviceId);
+
+    if (resolvedService && resolvedService.barberId && resolvedService.barberId !== barberId) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Serviço não pertence ao profissional selecionado');
+    }
   }
 
   if (!resolvedService && serviceName) {
@@ -133,6 +137,7 @@ const createPublicAppointment = catchAsync(async (req, res) => {
       title: serviceName,
       price: servicePrice,
       durationMinutes: serviceDurationMinutes,
+      barberId,
     });
   }
 

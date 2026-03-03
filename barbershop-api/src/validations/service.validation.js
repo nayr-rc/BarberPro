@@ -2,16 +2,15 @@ const Joi = require('joi');
 const { objectId } = require('./custom.validation');
 
 const createService = {
-  body: Joi.object()
-    .keys({
-      title: Joi.string().required(),
-      description: Joi.string().required(),
-      price: Joi.number().required(),
-      durationMinutes: Joi.number().integer().min(15).max(240).default(30),
-      category: Joi.string().custom(objectId),
-      categoryId: Joi.string().custom(objectId),
-    })
-    .or('category', 'categoryId'),
+  body: Joi.object().keys({
+    title: Joi.string().required(),
+    description: Joi.string().required(),
+    price: Joi.number().required(),
+    durationMinutes: Joi.number().integer().min(15).max(240).default(30),
+    category: Joi.string().custom(objectId),
+    categoryId: Joi.string().custom(objectId),
+    barberId: Joi.string().custom(objectId),
+  }),
 };
 
 const getServices = {
@@ -19,6 +18,7 @@ const getServices = {
     title: Joi.string(),
     category: Joi.string().custom(objectId),
     categoryId: Joi.string().custom(objectId),
+    barberId: Joi.string().custom(objectId),
     sortBy: Joi.string(),
     populate: Joi.string(),
     limit: Joi.number().integer(),
@@ -44,6 +44,7 @@ const updateService = {
       durationMinutes: Joi.number().integer().min(15).max(240),
       category: Joi.string().custom(objectId),
       categoryId: Joi.string().custom(objectId),
+      barberId: Joi.string().custom(objectId),
     })
     .min(1),
 };

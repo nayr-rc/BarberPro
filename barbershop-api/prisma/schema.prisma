@@ -41,6 +41,7 @@ model User {
   barberAppointments        Appointment[] @relation("BarberAppointments")
   reviews                   Review[]      @relation("UserReviews")
   barberReviews             Review[]      @relation("BarberReviews")
+  services                  Service[]     @relation("BarberServices")
   initiatedSubscriptionLogs SubscriptionActionLog[] @relation("SubscriptionLogInitiator")
   targetSubscriptionLogs    SubscriptionActionLog[] @relation("SubscriptionLogTarget")
 }
@@ -86,6 +87,8 @@ model Service {
   description String
   price       Float
   durationMinutes Int  @default(30)
+  barber      User?    @relation("BarberServices", fields: [barberId], references: [id])
+  barberId    String?
   category    ServiceCategory @relation(fields: [categoryId], references: [id])
   categoryId  String
   createdAt   DateTime @default(now())

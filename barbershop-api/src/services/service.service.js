@@ -1,8 +1,27 @@
 const prisma = require('../client');
 
+const getOrCreateDefaultCategory = async () => {
+  let defaultCategory = await prisma.serviceCategory.findFirst({
+    where: { name: 'Geral' },
+  });
+
+  if (!defaultCategory) {
+    defaultCategory = await prisma.serviceCategory.create({
+      data: { name: 'Geral' },
+    });
+  }
+
+  return defaultCategory;
+};
+
 const createService = async (serviceBody) => {
   const { category, categoryId, ...data } = serviceBody;
-  const resolvedCategoryId = categoryId || category;
+  let resolvedCategoryId = categoryId || category;
+
+  if (!resolvedCategoryId) {
+    const defaultCategory = await getOrCreateDefaultCategory();
+    resolvedCategoryId = defaultCategory.id;
+  }
 
   return prisma.service.create({
     data: {
@@ -20,6 +39,7 @@ const getServices = async (filter, options) => {
   const whereFilter = {
     ...filter,
     categoryId: filter.categoryId || filter.category,
+    barberId: filter.barberId,
   };
 
   delete whereFilter.category;
@@ -29,6 +49,11 @@ const getServices = async (filter, options) => {
 
   const include = {};
   if (populate === 'category') include.category = true;
+  if (populate === 'barber') include.barber = true;
+  if (populate === 'category,barber' || populate === 'barber,category') {
+    include.category = true;
+    include.barber = true;
+  }
 
   const orderBy = {};
   if (sortBy) {
@@ -82,29 +107,24 @@ const deleteServiceById = async (serviceId) => {
   });
 };
 
-const findOrCreatePublicService = async ({ title, price = 0, durationMinutes = 30 }) => {
+const findOrCreatePublicService = async ({ title, price = 0, durationMinutes = 30, barberId = null }) => {
   const normalizedTitle = String(title || '').trim();
   if (!normalizedTitle) {
     return null;
   }
 
   const existingService = await prisma.service.findFirst({
-    where: { title: normalizedTitle },
+    where: {
+      title: normalizedTitle,
+      barberId,
+    },
   });
 
   if (existingService) {
     return existingService;
   }
 
-  let defaultCategory = await prisma.serviceCategory.findFirst({
-    where: { name: 'Geral' },
-  });
-
-  if (!defaultCategory) {
-    defaultCategory = await prisma.serviceCategory.create({
-      data: { name: 'Geral' },
-    });
-  }
+  const defaultCategory = await getOrCreateDefaultCategory();
 
   return prisma.service.create({
     data: {
@@ -112,6 +132,7 @@ const findOrCreatePublicService = async ({ title, price = 0, durationMinutes = 3
       description: 'Serviço criado automaticamente para agendamento público',
       price: Number(price) || 0,
       durationMinutes: Number(durationMinutes) || 30,
+      barberId,
       category: {
         connect: { id: defaultCategory.id },
       },

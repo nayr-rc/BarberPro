@@ -106,7 +106,13 @@ export default function PaginaAgendar() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const responseServices = await fetch(`${API_BASE_URL}/services?limit=100`);
+        const query = new URLSearchParams({
+          barberId: parsedBarberId,
+          limit: '100',
+          sortBy: 'createdAt:desc',
+        });
+
+        const responseServices = await fetch(`${API_BASE_URL}/services?${query.toString()}`);
         if (!responseServices.ok) {
           throw new Error('Não foi possível carregar os serviços no momento.');
         }
@@ -122,20 +128,6 @@ export default function PaginaAgendar() {
 
         throw new Error('Nenhum serviço disponível para agendamento.');
       } catch (error) {
-        const savedServices = localStorage.getItem(`barber_services_${parsedBarberId}`);
-        if (savedServices) {
-          const parsedServices = JSON.parse(savedServices).map(normalizeService);
-          setServices(parsedServices);
-          if (parsedServices.length > 0) {
-            setSelectedService((current) => current || parsedServices[0]);
-            setFeedback({
-              type: 'info',
-              text: 'Serviços carregados do catálogo local para manter o agendamento funcionando.',
-            });
-            return;
-          }
-        }
-
         const message = error instanceof Error ? error.message : 'Falha ao carregar serviços.';
         setFeedback({ type: 'erro', text: message });
       } finally {

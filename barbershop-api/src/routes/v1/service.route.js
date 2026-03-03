@@ -8,14 +8,14 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth('manageServices'), validate(serviceValidation.createService), serviceController.createService)
+  .post(auth(), validate(serviceValidation.createService), serviceController.createService)
   .get(validate(serviceValidation.getServices), serviceController.getServices);
 
 router
   .route('/:serviceId')
   .get(validate(serviceValidation.getService), serviceController.getService)
-  .patch(auth('manageServices'), validate(serviceValidation.updateService), serviceController.updateService)
-  .delete(auth('manageServices'), validate(serviceValidation.deleteService), serviceController.deleteService);
+  .patch(auth(), validate(serviceValidation.updateService), serviceController.updateService)
+  .delete(auth(), validate(serviceValidation.deleteService), serviceController.deleteService);
 
 module.exports = router;
 
