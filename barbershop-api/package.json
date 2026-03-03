@@ -13,6 +13,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "cross-env NODE_ENV=development nodemon src/index.js",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:status": "prisma migrate status",
+    "seed": "node prisma/seed.js",
     "test": "jest -i --colors --verbose --detectOpenHandles",
     "test:watch": "jest -i --watchAll",
     "coverage": "jest -i --coverage",

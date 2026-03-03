@@ -15,7 +15,7 @@ const { tokenTypes } = require('../config/tokens');
 const loginUserWithEmailAndPassword = async (email, password) => {
   const user = await userService.getUserByEmail(email);
   if (!user || !(await bcrypt.compare(password, user.password))) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Incorrect email or password');
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'E-mail ou senha inválidos');
   }
 
   await prisma.user.update({
@@ -39,14 +39,14 @@ const logout = async (refreshToken) => {
     where: {
       token: refreshToken,
       type: tokenTypes.REFRESH,
-      blacklisted: false
-    }
+      blacklisted: false,
+    },
   });
   if (!refreshTokenDoc) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Not found');
+    throw new ApiError(httpStatus.NOT_FOUND, 'Token de sessão não encontrado');
   }
   await prisma.token.delete({
-    where: { id: refreshTokenDoc.id }
+    where: { id: refreshTokenDoc.id },
   });
 };
 
@@ -63,11 +63,11 @@ const refreshAuth = async (refreshToken) => {
       throw new Error();
     }
     await prisma.token.delete({
-      where: { id: refreshTokenDoc.id }
+      where: { id: refreshTokenDoc.id },
     });
     return tokenService.generateAuthTokens(user);
   } catch (error) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate');
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Faça login para continuar');
   }
 };
 
@@ -86,10 +86,10 @@ const resetPassword = async (resetPasswordToken, newPassword) => {
     }
     await userService.updateUserById(user.id, { password: newPassword });
     await prisma.token.deleteMany({
-      where: { userId: user.id, type: tokenTypes.RESET_PASSWORD }
+      where: { userId: user.id, type: tokenTypes.RESET_PASSWORD },
     });
   } catch (error) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Password reset failed');
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Não foi possível redefinir a senha');
   }
 };
 
@@ -106,11 +106,11 @@ const verifyEmail = async (verifyEmailToken) => {
       throw new Error();
     }
     await prisma.token.deleteMany({
-      where: { userId: user.id, type: tokenTypes.VERIFY_EMAIL }
+      where: { userId: user.id, type: tokenTypes.VERIFY_EMAIL },
     });
     await userService.updateUserById(user.id, { isEmailVerified: true });
   } catch (error) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Email verification failed');
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'Não foi possível verificar o e-mail');
   }
 };
 

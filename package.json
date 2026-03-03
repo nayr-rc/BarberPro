@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:backend:unit:critical": "npm --prefix barbershop-api run test -- tests/unit/middlewares/auth.test.js tests/unit/middlewares/checkSubscription.test.js tests/unit/validations/custom.validation.test.js tests/unit/services/service.service.test.js tests/unit/services/serviceCategory.service.test.js tests/unit/services/review.service.test.js tests/unit/services/appointment.service.test.js",
+    "test:backend:e2e:critical": "npm --prefix barbershop-api run test -- tests/e2e/auth-appointments.e2e.test.js",
+    "test:pre-commit": "npm run test:backend:unit:critical",
+    "test:pre-push": "npm run test:backend:unit:critical && npm run test:backend:e2e:critical",
+    "prepare": "husky"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.20",
@@ -17,7 +22,6 @@
     "axios": "^1.6.5",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "googleapis": "^171.4.0",
     "lucide-react": "^0.564.0",
     "next": "16.2.0-canary.71",
     "react": "19.2.3",
@@ -35,6 +39,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.0-canary.71",
+    "husky": "^9.1.7",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

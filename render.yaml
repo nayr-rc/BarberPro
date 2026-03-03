@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: barberpro-api
+    runtime: node
+    rootDir: barbershop-api
+    plan: free
+    buildCommand: npm ci && npm run migrate:deploy
+    startCommand: npm run start
+    autoDeploy: true
+    healthCheckPath: /v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_ACCESS_EXPIRATION_MINUTES
+        value: 30
+      - key: JWT_REFRESH_EXPIRATION_DAYS
+        value: 30
+      - key: JWT_RESET_PASSWORD_EXPIRATION_MINUTES
+        value: 10
+      - key: JWT_VERIFY_EMAIL_EXPIRATION_MINUTES
+        value: 10
+      - key: EMAIL_FROM
+        value: no-reply@barberpro.com

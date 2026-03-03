@@ -23,6 +23,7 @@ describe('appointment.service', () => {
 
   test('createAppointment normalizes legacy payload keys', async () => {
     prisma.service.findUnique.mockResolvedValue({ categoryId: 'category-1' });
+    prisma.appointment.findMany.mockResolvedValue([]);
     prisma.appointment.create.mockResolvedValue({ id: 'appointment-1' });
 
     await appointmentService.createAppointment({
@@ -55,6 +56,30 @@ describe('appointment.service', () => {
     await expect(appointmentService.createAppointment({ firstName: 'Joao' })).rejects.toMatchObject({
       statusCode: httpStatus.BAD_REQUEST,
     });
+  });
+
+  test('createAppointment throws conflict when slot already reserved', async () => {
+    prisma.service.findUnique.mockResolvedValue({ categoryId: 'category-1' });
+    prisma.appointment.findMany.mockResolvedValue([
+      {
+        id: 'existing-appointment',
+        appointmentDateTime: new Date().toISOString(),
+        serviceType: { durationMinutes: 30 },
+      },
+    ]);
+
+    await expect(
+      appointmentService.createAppointment({
+        firstName: 'Joao',
+        lastName: 'Silva',
+        contactNumber: '11999999999',
+        email: 'joao@barber.com',
+        userId: 'user-1',
+        preferredHairdresser: 'barber-1',
+        serviceType: 'service-1',
+        appointmentDateTime: new Date().toISOString(),
+      })
+    ).rejects.toMatchObject({ statusCode: httpStatus.CONFLICT });
   });
 
   test('queryAppointments normalizes legacy filters', async () => {

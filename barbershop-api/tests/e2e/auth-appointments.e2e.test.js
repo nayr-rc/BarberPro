@@ -1,4 +1,4 @@
-const { randomUUID } = require('crypto');
+const { randomUUID: mockRandomUUID } = require('crypto');
 const request = require('supertest');
 const httpStatus = require('http-status');
 
@@ -15,7 +15,6 @@ jest.mock('../../src/utils/notifications', () => ({
 }));
 
 jest.mock('../../src/client', () => {
-  const { randomUUID: mockRandomUUID } = require('crypto');
   const clone = (value) => JSON.parse(JSON.stringify(value));
 
   const state = {
@@ -250,7 +249,9 @@ jest.mock('../../src/client', () => {
         const filtered = state.categories.filter((category) => matchesWhere(category, where));
         return clone(withPagination(applyOrderBy(filtered, orderBy), skip, take));
       }),
-      count: jest.fn(async ({ where = {} } = {}) => state.categories.filter((category) => matchesWhere(category, where)).length),
+      count: jest.fn(
+        async ({ where = {} } = {}) => state.categories.filter((category) => matchesWhere(category, where)).length
+      ),
       findUnique: jest.fn(async ({ where } = {}) => {
         const [field] = Object.keys(where || {});
         const found = state.categories.find((category) => category[field] === where[field]);
@@ -275,7 +276,8 @@ jest.mock('../../src/client', () => {
     },
     service: {
       create: jest.fn(async ({ data }) => {
-        const categoryId = data.categoryId || (data.category && data.category.connect ? data.category.connect.id : undefined);
+        const categoryId =
+          data.categoryId || (data.category && data.category.connect ? data.category.connect.id : undefined);
         const service = {
           id: mockRandomUUID(),
           title: data.title,
@@ -344,6 +346,10 @@ jest.mock('../../src/client', () => {
         state.appointments.push(appointment);
         return clone(appointment);
       }),
+      findFirst: jest.fn(async ({ where = {} } = {}) => {
+        const found = state.appointments.find((appointment) => matchesWhere(appointment, where));
+        return found ? clone(found) : null;
+      }),
       findMany: jest.fn(async ({ where = {}, orderBy = {}, skip = 0, take = state.appointments.length, include } = {}) => {
         const filtered = state.appointments.filter((appointment) => matchesWhere(appointment, where));
         const ordered = applyOrderBy(filtered, orderBy);
@@ -395,7 +401,7 @@ const prisma = require('../../src/client');
 const registerPayload = (overrides = {}) => ({
   firstName: 'John',
   lastName: 'Tester',
-  email: `user-${randomUUID()}@barberpro.com`,
+  email: `user-${mockRandomUUID()}@barberpro.com`,
   contactNumber: '11999999999',
   password: 'Password123',
   role: 'barber',
@@ -443,7 +449,7 @@ describe('E2E - auth and appointments', () => {
 
     expect(secondLogout.body).toMatchObject({
       code: httpStatus.NOT_FOUND,
-      message: 'Not found',
+      message: 'Token de sessão não encontrado',
     });
   });
 
@@ -458,7 +464,7 @@ describe('E2E - auth and appointments', () => {
 
     expect(res.body).toMatchObject({
       code: httpStatus.UNAUTHORIZED,
-      message: 'Incorrect email or password',
+      message: 'E-mail ou senha inválidos',
     });
   });
 
@@ -547,6 +553,47 @@ describe('E2E - auth and appointments', () => {
     });
   });
 
+  test('creates public appointment without authentication', async () => {
+    const adminAuth = await registerAndLogin({ role: 'admin' });
+    const barberAuth = await registerAndLogin({ role: 'barber' });
+
+    const createCategoryRes = await request(app)
+      .post('/v1/service-categories')
+      .set('Authorization', `Bearer ${adminAuth.tokens.access.token}`)
+      .send({ name: 'Barba' })
+      .expect(httpStatus.CREATED);
+
+    const createServiceRes = await request(app)
+      .post('/v1/services')
+      .set('Authorization', `Bearer ${adminAuth.tokens.access.token}`)
+      .send({
+        title: 'Barba completa',
+        description: 'Modelagem e toalha quente',
+        price: 40,
+        categoryId: createCategoryRes.body.id,
+      })
+      .expect(httpStatus.CREATED);
+
+    const appointmentDate = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    const response = await request(app)
+      .post('/v1/appointments/public')
+      .send({
+        barberId: barberAuth.user.id,
+        serviceId: createServiceRes.body.id,
+        datetimeStart: appointmentDate,
+        guestName: 'Cliente Visitante',
+        guestPhone: '11995554444',
+      })
+      .expect(httpStatus.CREATED);
+
+    expect(response.body).toMatchObject({
+      preferredHairdresserId: barberAuth.user.id,
+      serviceTypeId: createServiceRes.body.id,
+      status: 'Upcoming',
+    });
+    expect(response.body.userId).toBeTruthy();
+  });
+
   test('blocks barber with pending subscription from appointments route', async () => {
     const barberAuth = await registerAndLogin({ role: 'barber' });
 
@@ -563,7 +610,7 @@ describe('E2E - auth and appointments', () => {
 
     expect(res.body).toMatchObject({
       code: httpStatus.UNAUTHORIZED,
-      message: 'Please authenticate',
+      message: 'Faça login para continuar',
     });
   });
 

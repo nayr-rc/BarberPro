@@ -7,9 +7,10 @@ import BarberSelect from "@/components/client/BarberSelect";
 import DateSelect from "@/components/client/DateSelect";
 import TimeSelect from "@/components/client/TimeSelect";
 import BookingSummary from "@/components/client/BookingSummary";
+import { AlertCircle } from "lucide-react";
 import { Service, Barber, TimeSlot, BookingStep } from "@/lib/types";
 
-// Mock data - replace with API calls
+// Dados temporários até integração completa
 const mockServices: Service[] = [
   { id: "1", name: "Corte", price: 45.0, durationMinutes: 30 },
   { id: "2", name: "Barba", price: 35.0, durationMinutes: 20 },
@@ -23,7 +24,7 @@ const mockBarbers: Barber[] = [
   { id: "3", name: "Pedro Costa", active: true },
 ];
 
-// Generate time slots from 9:00 to 18:00
+// Gera horários das 09:00 às 18:00
 const generateTimeSlots = (): TimeSlot[] => {
   const slots: TimeSlot[] = [];
   for (let hour = 9; hour < 18; hour++) {
@@ -31,7 +32,7 @@ const generateTimeSlots = (): TimeSlot[] => {
       const time = `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
       slots.push({
         time,
-        // Mock: disable some slots
+        // Simulação de indisponibilidade
         available: Math.random() > 0.3,
       });
     }
@@ -51,9 +52,10 @@ export default function BookingPage() {
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>(generateTimeSlots());
   const [isLoading, setIsLoading] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
-    // Generate new time slots when date changes
+    // Atualiza horários quando a data muda
     if (booking.date) {
       setTimeSlots(generateTimeSlots());
     }
@@ -81,22 +83,20 @@ export default function BookingPage() {
 
   const handleConfirmBooking = async () => {
     setIsLoading(true);
+    setFeedback("");
     try {
-      // Simulate API call
+      // Simula chamada de API
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      
-      // Here you would send the booking data to the backend
-      console.log("Booking confirmed:", booking);
-      
+
       setBookingConfirmed(true);
-      
-      // Redirect to confirmation page after 2 seconds
+
+      // Redireciona para confirmação após 2 segundos
       setTimeout(() => {
         router.push("/client/booking-confirmation");
       }, 2000);
     } catch (error) {
-      console.error("Error confirming booking:", error);
-      alert("Erro ao confirmar reserva. Tente novamente.");
+      console.error("Erro ao confirmar reserva:", error);
+      setFeedback("Não foi possível confirmar a reserva. Tente novamente em instantes.");
     } finally {
       setIsLoading(false);
     }
@@ -133,7 +133,7 @@ export default function BookingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-barber-black to-barber-dark py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
+        {/* Cabeçalho */}
         <div className="mb-12 text-center">
           <h1 className="text-4xl font-bold text-barber-beige mb-2">
             Agende seu Horário
@@ -142,7 +142,7 @@ export default function BookingPage() {
             Passo {currentStep} de 5
           </p>
           
-          {/* Progress Bar */}
+          {/* Barra de progresso */}
           <div className="mt-6 flex gap-2">
             {[1, 2, 3, 4, 5].map((step) => (
               <div
@@ -157,7 +157,14 @@ export default function BookingPage() {
           </div>
         </div>
 
-        {/* Main Content */}
+        {feedback && (
+          <div className="mb-6 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 flex items-center gap-2 text-rose-200">
+            <AlertCircle size={16} />
+            <p className="text-sm font-semibold">{feedback}</p>
+          </div>
+        )}
+
+        {/* Conteúdo principal */}
         <div className="bg-barber-dark border border-barber-brown rounded-lg p-8 space-y-8">
           {currentStep === 1 && (
             <ServiceSelect
@@ -202,7 +209,7 @@ export default function BookingPage() {
             />
           )}
 
-          {/* Navigation Buttons */}
+          {/* Botões de navegação */}
           {currentStep < 5 && (
             <div className="flex gap-4 pt-6 border-t border-barber-brown">
               <button
@@ -243,7 +250,7 @@ export default function BookingPage() {
           )}
         </div>
 
-        {/* Info Box */}
+        {/* Caixa de informação */}
         <div className="mt-8 bg-barber-brown/20 border border-barber-brown rounded-lg p-6 text-center">
           <p className="text-barber-accent text-sm">
             ℹ️ Todos os horários são confirmados em tempo real. Você receberá uma confirmação por email.

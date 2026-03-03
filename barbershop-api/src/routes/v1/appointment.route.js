@@ -8,15 +8,34 @@ const checkSubscription = require('../../middlewares/checkSubscription');
 const router = express.Router();
 
 router
+  .route('/public')
+  .post(validate(appointmentValidation.createPublicAppointment), appointmentController.createPublicAppointment);
+
+router
   .route('/')
-  .post(auth(), checkSubscription, validate(appointmentValidation.createAppointment), appointmentController.createAppointment)
+  .post(
+    auth(),
+    checkSubscription,
+    validate(appointmentValidation.createAppointment),
+    appointmentController.createAppointment
+  )
   .get(auth(), checkSubscription, validate(appointmentValidation.getAppointments), appointmentController.getAppointments);
 
 router
   .route('/:appointmentId')
   .get(auth(), checkSubscription, validate(appointmentValidation.getAppointment), appointmentController.getAppointment)
-  .patch(auth(), checkSubscription, validate(appointmentValidation.updateAppointment), appointmentController.updateAppointment)
-  .delete(auth(), checkSubscription, validate(appointmentValidation.deleteAppointment), appointmentController.deleteAppointment);
+  .patch(
+    auth(),
+    checkSubscription,
+    validate(appointmentValidation.updateAppointment),
+    appointmentController.updateAppointment
+  )
+  .delete(
+    auth(),
+    checkSubscription,
+    validate(appointmentValidation.deleteAppointment),
+    appointmentController.deleteAppointment
+  );
 
 router
   .route('/:appointmentId/pay')
