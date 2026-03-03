@@ -27,6 +27,8 @@ type BarberProfile = {
   firstName: string;
   lastName: string;
   email?: string;
+  contactNumber?: string;
+  phone?: string;
 };
 
 type ServiceOption = {
@@ -295,6 +297,38 @@ export default function PaginaAgendar() {
 
       bookingCreated = true;
 
+      // ── Notificação WhatsApp ao barbeiro ────────────────────────────────
+      try {
+        // Tenta usar o contactNumber já disponível no objeto barber.
+        // Se não disponível, busca o perfil completo do barbeiro na API.
+        let barberPhone = barber?.contactNumber || barber?.phone;
+
+        if (!barberPhone) {
+          const profileRes = await fetch(`${API_BASE_URL}/users/${parsedBarberId}`);
+          if (profileRes.ok) {
+            const profileData = await profileRes.json();
+            barberPhone = profileData?.contactNumber || profileData?.phone;
+          }
+        }
+
+        if (barberPhone) {
+          void fetch('/api/notify-whatsapp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: barberPhone,
+              serviceName: selectedService.title,
+              dateTime: selectedSlot.start,
+              clientName: customerName,
+              clientPhone: customerPhone,
+            }),
+          });
+        }
+      } catch {
+        // Falha silenciosa — não bloqueia o agendamento
+      }
+
+      // ── Notificação por e-mail ao barbeiro ──────────────────────────────
       try {
         const notificationRecipient = barber?.email;
         if (notificationRecipient) {
@@ -373,13 +407,12 @@ export default function PaginaAgendar() {
 
         {feedback && (
           <div
-            className={`mb-8 rounded-2xl border px-4 py-3 flex items-start gap-3 ${
-              feedback.type === 'erro'
-                ? 'bg-rose-500/10 border-rose-500/30 text-rose-200'
-                : feedback.type === 'sucesso'
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
-                  : 'bg-blue-500/10 border-blue-500/30 text-blue-100'
-            }`}
+            className={`mb-8 rounded-2xl border px-4 py-3 flex items-start gap-3 ${feedback.type === 'erro'
+              ? 'bg-rose-500/10 border-rose-500/30 text-rose-200'
+              : feedback.type === 'sucesso'
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
+                : 'bg-blue-500/10 border-blue-500/30 text-blue-100'
+              }`}
           >
             <AlertCircle size={18} className="mt-0.5" />
             <p className="text-sm uppercase tracking-wide font-semibold">{feedback.text}</p>
@@ -408,11 +441,10 @@ export default function PaginaAgendar() {
                     key={service.id}
                     type="button"
                     onClick={() => handleServiceChange(service)}
-                    className={`p-4 rounded-2xl border text-left transition-all ${
-                      selectedService?.id === service.id
-                        ? 'bg-barber-gold/10 border-barber-gold'
-                        : 'bg-barber-dark border-white/5 hover:border-white/20'
-                    }`}
+                    className={`p-4 rounded-2xl border text-left transition-all ${selectedService?.id === service.id
+                      ? 'bg-barber-gold/10 border-barber-gold'
+                      : 'bg-barber-dark border-white/5 hover:border-white/20'
+                      }`}
                   >
                     <p className="text-xs uppercase tracking-widest text-gray-400 mb-2">Serviço</p>
                     <h3 className="text-sm font-bold uppercase mb-3">{service.title}</h3>
@@ -463,23 +495,23 @@ export default function PaginaAgendar() {
                 {isFetchingSlots && (
                   <p className="text-xs uppercase tracking-widest text-barber-accent">Atualizando horários...</p>
                 )}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {daySlots.map((slot, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleBooking(slot)}
-                    className="h-24 rounded-2xl flex flex-col items-center justify-center transition-all border bg-barber-dark border-white/5 text-white hover:border-barber-gold hover:text-barber-gold group px-2"
-                  >
-                    <span className="text-[9px] uppercase font-bold tracking-widest mb-1 opacity-50">Disponível</span>
-                    <span className="text-base font-heading font-bold leading-none">
-                      {format(parseISO(slot.start), 'HH:mm')} - {format(parseISO(slot.end), 'HH:mm')}
-                    </span>
-                    <span className="text-[9px] uppercase mt-1 font-bold tracking-tighter opacity-70">
-                      {selectedService ? formatCurrency(selectedService.price) : ''}
-                    </span>
-                  </button>
-                ))}
-              </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {daySlots.map((slot, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleBooking(slot)}
+                      className="h-24 rounded-2xl flex flex-col items-center justify-center transition-all border bg-barber-dark border-white/5 text-white hover:border-barber-gold hover:text-barber-gold group px-2"
+                    >
+                      <span className="text-[9px] uppercase font-bold tracking-widest mb-1 opacity-50">Disponível</span>
+                      <span className="text-base font-heading font-bold leading-none">
+                        {format(parseISO(slot.start), 'HH:mm')} - {format(parseISO(slot.end), 'HH:mm')}
+                      </span>
+                      <span className="text-[9px] uppercase mt-1 font-bold tracking-tighter opacity-70">
+                        {selectedService ? formatCurrency(selectedService.price) : ''}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </>
             )}
           </div>
@@ -532,11 +564,10 @@ export default function PaginaAgendar() {
                       key={service.id}
                       type="button"
                       onClick={() => handleServiceChange(service)}
-                      className={`rounded-2xl border p-4 text-left transition-all ${
-                        selectedService.id === service.id
-                          ? 'border-barber-gold bg-barber-gold/10'
-                          : 'border-white/10 bg-barber-black/40 hover:border-white/30'
-                      }`}
+                      className={`rounded-2xl border p-4 text-left transition-all ${selectedService.id === service.id
+                        ? 'border-barber-gold bg-barber-gold/10'
+                        : 'border-white/10 bg-barber-black/40 hover:border-white/30'
+                        }`}
                     >
                       <p className="text-xs uppercase tracking-widest text-gray-400 mb-1">Serviço</p>
                       <p className="text-sm font-bold uppercase">{service.title}</p>
