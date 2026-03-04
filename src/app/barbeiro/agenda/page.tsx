@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import NovoAgendamentoModal from "@/components/modals/NovoAgendamentoModal";
 import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 export default function MinhaAgenda() {
     const router = useRouter();
@@ -16,16 +17,42 @@ export default function MinhaAgenda() {
     const { agendamentos, carregarAgendamentos, isLoading, removerAgendamento } = useAgendaStore();
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<Agendamento | null>(null);
+    const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+    const [filterStatus, setFilterStatus] = useState('Todos');
+    const [appliedDate, setAppliedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [appliedStatus, setAppliedStatus] = useState('Todos');
 
     useEffect(() => {
         if (!isAuthenticated) {
             router.push("/auth/login");
             return;
         }
-        carregarAgendamentos();
+        carregarAgendamentos(filterDate);
     }, [isAuthenticated, carregarAgendamentos, router]);
 
-    const handleRefresh = () => carregarAgendamentos();
+    const handleRefresh = () => carregarAgendamentos(appliedDate);
+
+    const handleApplyFilters = () => {
+        setAppliedDate(filterDate);
+        setAppliedStatus(filterStatus);
+        carregarAgendamentos(filterDate);
+    };
+
+    const agendamentosFiltrados = agendamentos.filter(a => {
+        const dateMatch = a.data === appliedDate;
+        const statusMatch = appliedStatus === 'Todos' || a.status === appliedStatus.toLowerCase();
+        return dateMatch && statusMatch;
+    });
+
+    const formatDateLabel = (dateStr: string) => {
+        const today = new Date().toISOString().split('T')[0];
+        if (dateStr === today) return 'Hoje';
+        try {
+            return format(parseISO(dateStr), "dd 'de' MMMM", { locale: ptBR });
+        } catch {
+            return dateStr;
+        }
+    };
 
     const handleCancelClick = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
@@ -76,18 +103,29 @@ export default function MinhaAgenda() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black tracking-widest text-gray-500 uppercase ml-1">Data</label>
-                                <input type="date" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm focus:border-emerald-500/50 outline-none transition-all" value={new Date().toISOString().split('T')[0]} />
+                                <input
+                                    type="date"
+                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm focus:border-emerald-500/50 outline-none transition-all"
+                                    value={filterDate}
+                                    onChange={(e) => setFilterDate(e.target.value)}
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black tracking-widest text-gray-500 uppercase ml-1">Status</label>
-                                <select className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm focus:border-emerald-500/50 outline-none transition-all appearance-none cursor-pointer">
+                                <select
+                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm focus:border-emerald-500/50 outline-none transition-all appearance-none cursor-pointer"
+                                    value={filterStatus}
+                                    onChange={(e) => setFilterStatus(e.target.value)}
+                                >
                                     <option>Todos</option>
                                     <option>Confirmados</option>
                                     <option>Pendentes</option>
+                                    <option>Concluídos</option>
+                                    <option>Cancelados</option>
                                 </select>
                             </div>
                         </div>
-                        <Button variant="outline" className="w-full mt-6 py-4 uppercase text-[10px] font-black tracking-[0.2em] border-white/5 bg-white/5">
+                        <Button variant="outline" className="w-full mt-6 py-4 uppercase text-[10px] font-black tracking-[0.2em] border-white/5 bg-white/5" onClick={handleApplyFilters}>
                             Aplicar Filtros
                         </Button>
                     </Card>
@@ -97,7 +135,7 @@ export default function MinhaAgenda() {
                 <section>
                     <div className="flex items-center gap-2 mb-4 opacity-60">
                         <CalendarIcon size={16} className="text-emerald-400" />
-                        <h2 className="text-xs font-bold uppercase tracking-widest text-emerald-400">Atendimentos de Hoje</h2>
+                        <h2 className="text-xs font-bold uppercase tracking-widest text-emerald-400">Atendimentos — {formatDateLabel(appliedDate)}</h2>
                     </div>
 
                     {isLoading ? (
@@ -106,13 +144,13 @@ export default function MinhaAgenda() {
                                 <div key={i} className="h-24 bg-white/5 rounded-3xl" />
                             ))}
                         </div>
-                    ) : agendamentos.length === 0 ? (
+                    ) : agendamentosFiltrados.length === 0 ? (
                         <Card className="py-20 text-center opacity-50 border-dashed border-white/10 bg-white/[0.02]">
-                            <p className="text-sm uppercase tracking-widest font-medium">Nenhum agendamento para hoje</p>
+                            <p className="text-sm uppercase tracking-widest font-medium">Nenhum agendamento para {formatDateLabel(appliedDate)}</p>
                         </Card>
                     ) : (
                         <div className="flex flex-col gap-4">
-                            {agendamentos.map((a) => (
+                            {agendamentosFiltrados.map((a) => (
                                 <Card
                                     key={a.id}
                                     className="p-6 flex items-center justify-between group hover:border-emerald-500/30 transition-all cursor-pointer"
