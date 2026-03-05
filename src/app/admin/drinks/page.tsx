@@ -13,14 +13,14 @@ interface Drink {
 }
 
 export default function AdminDrinks() {
-    const { user, isAuthenticated } = useAuthStore();
+    const { hasHydrated, user, isAuthenticated } = useAuthStore();
     const router = useRouter();
     const [drinks, setDrinks] = useState<Drink[]>([]);
     const [name, setName] = useState("");
     const [price, setPrice] = useState("");
 
     useEffect(() => {
-        if (!isAuthenticated || user?.role !== "admin") {
+        if (hasHydrated && (!isAuthenticated || user?.role !== "admin")) {
             router.push("/auth/login");
         } else {
             fetchDrinks();

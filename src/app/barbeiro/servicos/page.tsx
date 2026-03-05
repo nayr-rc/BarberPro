@@ -30,7 +30,7 @@ type LegacyLocalService = {
 };
 
 export default function BarbeiroServicos() {
-  const { user, isAuthenticated } = useAuthStore();
+  const { hasHydrated, user, isAuthenticated } = useAuthStore();
   const router = useRouter();
   const [services, setServices] = useState<BarberService[]>([]);
   const [newTitle, setNewTitle] = useState("");
@@ -132,7 +132,7 @@ export default function BarbeiroServicos() {
   }, [barberId]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (hasHydrated && !isAuthenticated) {
       router.push("/auth/login");
       return;
     }
@@ -212,7 +212,7 @@ export default function BarbeiroServicos() {
     }
   };
 
-  if (!isAuthenticated) return null;
+  if (hasHydrated && !isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black text-white p-6 pb-24 font-sans selection:bg-emerald-500/30">

@@ -30,7 +30,7 @@ const formatCurrency = (value: number) =>
   }).format(value);
 
 export default function AdminDashboard() {
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { hasHydrated, user, isAuthenticated, logout } = useAuthStore();
   const router = useRouter();
 
   const [stats, setStats] = useState<DashboardStats>({
@@ -45,7 +45,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const isAdmin = user?.role === "admin";
 
-    if (!isAuthenticated) {
+    if (hasHydrated && !isAuthenticated) {
       router.push("/auth/login");
     } else if (!isAdmin) {
       router.push("/barbeiro/dashboard");
@@ -54,7 +54,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const loadDashboardStats = async () => {
-      if (!isAuthenticated || user?.role !== "admin") {
+      if (hasHydrated && (!isAuthenticated || user?.role !== "admin")) {
         return;
       }
 

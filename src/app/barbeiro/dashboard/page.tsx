@@ -11,7 +11,7 @@ import NovoAgendamentoModal from "@/components/modals/NovoAgendamentoModal";
 
 export default function Dashboard() {
     const router = useRouter();
-    const { user, logout, isAuthenticated } = useAuthStore();
+    const { hasHydrated, user, logout, isAuthenticated } = useAuthStore();
     const { agendamentosHoje, carregarAgendamentos, isLoading } = useAgendaStore();
     const [modalOpen, setModalOpen] = useState(false);
     const [copied, setCopied] = useState(false);

@@ -13,7 +13,7 @@ import { ptBR } from "date-fns/locale";
 
 export default function MinhaAgenda() {
     const router = useRouter();
-    const { isAuthenticated } = useAuthStore();
+    const { hasHydrated, isAuthenticated } = useAuthStore();
     const { agendamentos, carregarAgendamentos, filtrarAgendamentos, isLoading, removerAgendamento, subscriptionError } = useAgendaStore();
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<Agendamento | null>(null);
@@ -23,7 +23,7 @@ export default function MinhaAgenda() {
     const [appliedDate, setAppliedDate] = useState(hoje);
 
     useEffect(() => {
-        if (!isAuthenticated) {
+        if (hasHydrated && !isAuthenticated) {
             router.push("/auth/login");
             return;
         }
@@ -63,7 +63,7 @@ export default function MinhaAgenda() {
         }
     };
 
-    if (!isAuthenticated) return null;
+    if (hasHydrated && !isAuthenticated) return null;
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black pb-24 text-white font-sans selection:bg-emerald-500/30">

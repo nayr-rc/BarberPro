@@ -40,7 +40,7 @@ interface SubscriptionLog {
 
 export default function AdminAssinaturas() {
     const router = useRouter();
-    const { user, isAuthenticated } = useAuthStore();
+    const { hasHydrated, user, isAuthenticated } = useAuthStore();
     const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
     const [logs, setLogs] = useState<SubscriptionLog[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -49,7 +49,7 @@ export default function AdminAssinaturas() {
     const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
     useEffect(() => {
-        if (!isAuthenticated) {
+        if (hasHydrated && !isAuthenticated) {
             router.push("/auth/login");
             return;
         }
@@ -121,7 +121,7 @@ export default function AdminAssinaturas() {
         expired: subscribers.filter(s => s.subscriptionStatus === "expired").length,
     };
 
-    if (!isAuthenticated || user?.role !== "admin") return null;
+    if (hasHydrated && (!isAuthenticated || user?.role !== "admin")) return null;
 
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white font-sans pb-16">

@@ -6,11 +6,11 @@ import { useEffect } from "react";
 import Link from "next/link";
 
 export default function ClientDashboard() {
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { hasHydrated, user, isAuthenticated, logout } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (hasHydrated && !isAuthenticated) {
       router.push("/auth/login");
     }
   }, [isAuthenticated, router]);

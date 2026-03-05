@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { AlertTriangle, RefreshCw, LogOut, Clock } from "lucide-react";
@@ -21,11 +21,20 @@ export default function SubscriptionGuard({ children }: SubscriptionGuardProps) 
     const router = useRouter();
     const { user, isAuthenticated, logout, isSubscriptionActive } = useAuthStore();
 
+    const [isMounted, setIsMounted] = useState(false);
+
     useEffect(() => {
-        if (!isAuthenticated) {
+        setIsMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (isMounted && !isAuthenticated) {
             router.push("/auth/login");
         }
-    }, [isAuthenticated, router]);
+    }, [isMounted, isAuthenticated, router]);
+
+    // Don't render anything until mounted to avoid hydration mismatch
+    if (!isMounted) return null;
 
     if (!isAuthenticated || !user) return null;
 

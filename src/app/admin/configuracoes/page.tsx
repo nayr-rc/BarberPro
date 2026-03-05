@@ -20,7 +20,7 @@ type HealthStatus = {
 };
 
 export default function AdminConfiguracoesPage() {
-  const { user, isAuthenticated } = useAuthStore();
+  const { hasHydrated, user, isAuthenticated } = useAuthStore();
   const router = useRouter();
 
   const [profile, setProfile] = useState<AdminProfile>({
@@ -42,7 +42,7 @@ export default function AdminConfiguracoesPage() {
   const [health, setHealth] = useState<HealthStatus | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (hasHydrated && !isAuthenticated) {
       router.push("/auth/login");
       return;
     }
@@ -159,7 +159,7 @@ export default function AdminConfiguracoesPage() {
     }
   };
 
-  if (!isAuthenticated || user?.role !== "admin") {
+  if (hasHydrated && (!isAuthenticated || user?.role !== "admin")) {
     return null;
   }
 

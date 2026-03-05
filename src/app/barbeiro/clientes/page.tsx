@@ -12,12 +12,12 @@ import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function Clientes() {
     const router = useRouter();
-    const { isAuthenticated } = useAuthStore();
+    const { hasHydrated, isAuthenticated } = useAuthStore();
     const { clientes, carregarClientes, busca, buscarClientes } = useClientesStore();
     const [modalOpen, setModalOpen] = useState(false);
 
     useEffect(() => {
-        if (!isAuthenticated) {
+        if (hasHydrated && !isAuthenticated) {
             router.push("/auth/login");
             return;
         }
@@ -29,7 +29,7 @@ export default function Clientes() {
         c.telefone.includes(busca)
     );
 
-    if (!isAuthenticated) return null;
+    if (hasHydrated && !isAuthenticated) return null;
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black pb-24 text-white font-sans selection:bg-emerald-500/30">

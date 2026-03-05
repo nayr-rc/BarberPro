@@ -36,7 +36,7 @@ const formatCurrency = (value: number) =>
   }).format(value);
 
 export default function AdminAgendaPage() {
-  const { user, isAuthenticated } = useAuthStore();
+  const { hasHydrated, user, isAuthenticated } = useAuthStore();
   const router = useRouter();
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -72,7 +72,7 @@ export default function AdminAgendaPage() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (hasHydrated && !isAuthenticated) {
       router.push("/auth/login");
       return;
     }
@@ -188,7 +188,7 @@ export default function AdminAgendaPage() {
     }
   };
 
-  if (!isAuthenticated || user?.role !== "admin") {
+  if (hasHydrated && (!isAuthenticated || user?.role !== "admin")) {
     return null;
   }
 

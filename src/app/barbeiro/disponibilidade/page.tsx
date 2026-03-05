@@ -31,14 +31,14 @@ const DEFAULT_CONFIG: DayConfig[] = DAYS_NAMES.map((name, index) => ({
 }));
 
 export default function DisponibilidadeBarbeiro() {
-    const { user, isAuthenticated } = useAuthStore();
+    const { hasHydrated, user, isAuthenticated } = useAuthStore();
     const router = useRouter();
     const [schedule, setSchedule] = useState<DayConfig[]>(DEFAULT_CONFIG);
     const [isSaving, setIsSaving] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
 
     useEffect(() => {
-        if (!isAuthenticated) {
+        if (hasHydrated && !isAuthenticated) {
             router.push("/auth/login");
             return;
         }
@@ -98,7 +98,7 @@ export default function DisponibilidadeBarbeiro() {
         }
     };
 
-    if (!isAuthenticated) return null;
+    if (hasHydrated && !isAuthenticated) return null;
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black text-white p-6 pb-24 font-sans selection:bg-emerald-500/30">

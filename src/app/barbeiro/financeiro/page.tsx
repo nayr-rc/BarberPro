@@ -11,19 +11,19 @@ import { useRouter } from "next/navigation";
 
 export default function BarbeiroFinanceiro() {
     const router = useRouter();
-    const { isAuthenticated } = useAuthStore();
+    const { hasHydrated, isAuthenticated } = useAuthStore();
     const { resumo, carregarResumo, isLoading } = useGanhosStore();
     const [periodo, setPeriodo] = useState<"hoje" | "semana" | "mes">("semana");
 
     useEffect(() => {
-        if (!isAuthenticated) {
+        if (hasHydrated && !isAuthenticated) {
             router.push("/auth/login");
             return;
         }
         carregarResumo(periodo);
     }, [periodo, carregarResumo, isAuthenticated, router]);
 
-    if (!isAuthenticated) return null;
+    if (hasHydrated && !isAuthenticated) return null;
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black pb-24 text-white font-sans selection:bg-emerald-500/30">
