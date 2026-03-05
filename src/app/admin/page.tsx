@@ -4,7 +4,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import apiClient from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, Users, Scissors, Coffee, Settings, LogOut, TrendingUp, CheckCircle, ScissorsLineDashed, LayoutDashboard, ShieldCheck, Loader2, AlertTriangle } from "lucide-react";
+import { Calendar, Users, Coffee, Settings, LogOut, TrendingUp, CheckCircle, ScissorsLineDashed, LayoutDashboard, ShieldCheck, Loader2, AlertTriangle } from "lucide-react";
 import { addDays, format, startOfDay, startOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -202,12 +202,6 @@ export default function AdminDashboard() {
             title="Clientes"
             description="Base consolidada de clientes com histórico de recorrência e indicadores de relacionamento."
             onClick={() => router.push("/admin/clientes")}
-          />
-          <AdminCard
-            icon={<Scissors className="w-6 h-6" />}
-            title="Serviços"
-            description="Administre o catálogo operacional e acompanhe a oferta ativa por profissional."
-            onClick={() => router.push("/barbeiro/servicos")}
           />
           <AdminCard
             icon={<Coffee className="w-6 h-6" />}

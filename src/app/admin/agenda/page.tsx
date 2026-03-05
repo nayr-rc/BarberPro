@@ -12,6 +12,14 @@ type Appointment = {
   status: "Upcoming" | "Past" | "Cancelled";
   appointmentDateTime: string;
   additionalNotes?: string | null;
+  firstName?: string;
+  lastName?: string;
+  contactNumber?: string;
+  preferredHairdresserId?: string;
+  serviceTypeId?: string;
+  serviceTypeName?: string;
+  servicePrice?: number;
+  serviceDurationMinutes?: number;
   user?: {
     firstName: string;
     lastName: string;
@@ -35,6 +43,32 @@ const formatCurrency = (value: number) =>
     currency: "BRL",
   }).format(value);
 
+const getCustomerName = (appointment: Appointment) => {
+  const firstName = appointment.user?.firstName || appointment.firstName || "";
+  const lastName = appointment.user?.lastName || appointment.lastName || "";
+  const fullName = `${firstName} ${lastName}`.trim();
+  return fullName || "Cliente";
+};
+
+const getBarberName = (appointment: Appointment) => {
+  const firstName = appointment.preferredHairdresser?.firstName || "";
+  const lastName = appointment.preferredHairdresser?.lastName || "";
+  const fullName = `${firstName} ${lastName}`.trim();
+  return fullName || "Barbeiro";
+};
+
+const getServiceTitle = (appointment: Appointment) => {
+  return appointment.serviceType?.title || appointment.serviceTypeName || "Serviço";
+};
+
+const getServicePrice = (appointment: Appointment) => {
+  return Number(appointment.serviceType?.price ?? appointment.servicePrice ?? 0);
+};
+
+const getServiceDurationMinutes = (appointment: Appointment) => {
+  return Number(appointment.serviceType?.durationMinutes ?? appointment.serviceDurationMinutes ?? 30);
+};
+
 export default function AdminAgendaPage() {
   const { hasHydrated, user, isAuthenticated } = useAuthStore();
   const router = useRouter();
@@ -47,7 +81,7 @@ export default function AdminAgendaPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "Upcoming" | "Past" | "Cancelled">("all");
   const [barberFilter, setBarberFilter] = useState("all");
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [selectedDate, setSelectedDate] = useState("");
 
   const fetchAppointments = useCallback(async () => {
     setIsRefreshing(true);
@@ -62,7 +96,9 @@ export default function AdminAgendaPage() {
         },
       });
 
-      setAppointments(response.data.results || []);
+      const payload = response.data;
+      const results = Array.isArray(payload) ? payload : Array.isArray(payload?.results) ? payload.results : [];
+      setAppointments(results as Appointment[]);
     } catch {
       setAppointments([]);
     } finally {
@@ -88,11 +124,9 @@ export default function AdminAgendaPage() {
   const barberOptions = useMemo(() => {
     const map = new Map<string, string>();
     appointments.forEach((appointment) => {
-      if (appointment.preferredHairdresser) {
-        map.set(
-          appointment.preferredHairdresser.id,
-          `${appointment.preferredHairdresser.firstName} ${appointment.preferredHairdresser.lastName}`
-        );
+      const barberId = appointment.preferredHairdresser?.id || appointment.preferredHairdresserId;
+      if (barberId) {
+        map.set(barberId, getBarberName(appointment));
       }
     });
 
@@ -100,17 +134,19 @@ export default function AdminAgendaPage() {
   }, [appointments]);
 
   const filteredAppointments = useMemo(() => {
-    const dateObj = parseISO(`${selectedDate}T00:00:00`);
+    const dateObj = selectedDate ? parseISO(`${selectedDate}T00:00:00`) : null;
     const normalizedQuery = query.trim().toLowerCase();
 
     return appointments.filter((appointment) => {
       const appointmentDate = new Date(appointment.appointmentDateTime);
-      const barberId = appointment.preferredHairdresser?.id || "";
-      const customerName = `${appointment.user?.firstName || ""} ${appointment.user?.lastName || ""}`.trim().toLowerCase();
-      const barberName = `${appointment.preferredHairdresser?.firstName || ""} ${appointment.preferredHairdresser?.lastName || ""}`.trim().toLowerCase();
-      const serviceName = (appointment.serviceType?.title || "").toLowerCase();
+      const barberId = appointment.preferredHairdresser?.id || appointment.preferredHairdresserId || "";
+      const customerName = getCustomerName(appointment).toLowerCase();
+      const barberName = getBarberName(appointment).toLowerCase();
+      const serviceName = getServiceTitle(appointment).toLowerCase();
 
-      const matchesDate = isSameDay(appointmentDate, dateObj);
+      const matchesDate =
+        !dateObj ||
+        (Number.isNaN(dateObj.getTime()) ? true : !Number.isNaN(appointmentDate.getTime()) && isSameDay(appointmentDate, dateObj));
       const matchesStatus = statusFilter === "all" || appointment.status === statusFilter;
       const matchesBarber = barberFilter === "all" || barberId === barberFilter;
       const matchesQuery =
@@ -142,12 +178,12 @@ export default function AdminAgendaPage() {
       for (let i = 0; i < sorted.length; i += 1) {
         const current = sorted[i];
         const currentStart = new Date(current.appointmentDateTime);
-        const currentEnd = addMinutes(currentStart, Number(current.serviceType?.durationMinutes || 30));
+        const currentEnd = addMinutes(currentStart, getServiceDurationMinutes(current));
 
         for (let j = i + 1; j < sorted.length; j += 1) {
           const next = sorted[j];
           const nextStart = new Date(next.appointmentDateTime);
-          const nextEnd = addMinutes(nextStart, Number(next.serviceType?.durationMinutes || 30));
+          const nextEnd = addMinutes(nextStart, getServiceDurationMinutes(next));
 
           if (nextStart >= currentEnd) {
             break;
@@ -171,7 +207,7 @@ export default function AdminAgendaPage() {
     const cancelled = filteredAppointments.filter((appointment) => appointment.status === "Cancelled").length;
     const projectedRevenue = filteredAppointments
       .filter((appointment) => appointment.status !== "Cancelled")
-      .reduce((sum, appointment) => sum + Number(appointment.serviceType?.price || 0), 0);
+      .reduce((sum, appointment) => sum + getServicePrice(appointment), 0);
 
     return { total, upcoming, completed, cancelled, projectedRevenue };
   }, [filteredAppointments]);
@@ -238,12 +274,21 @@ export default function AdminAgendaPage() {
             />
           </div>
 
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(event) => setSelectedDate(event.target.value)}
-            className="bg-white/5 border border-white/10 rounded-xl py-3 px-4 outline-none focus:border-barber-gold/50"
-          />
+          <div className="flex gap-2">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(event) => setSelectedDate(event.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 outline-none focus:border-barber-gold/50"
+            />
+            <button
+              type="button"
+              onClick={() => setSelectedDate("")}
+              className="px-3 rounded-xl border border-white/10 bg-white/5 text-xs uppercase tracking-widest text-gray-300 hover:bg-white/10"
+            >
+              Todas
+            </button>
+          </div>
 
           <select
             value={statusFilter}
@@ -288,7 +333,11 @@ export default function AdminAgendaPage() {
         ) : (
           <div className="space-y-3">
             {filteredAppointments.map((appointment) => {
-              const appointmentDate = parseISO(appointment.appointmentDateTime);
+              const appointmentDate = new Date(appointment.appointmentDateTime);
+              const customerName = getCustomerName(appointment);
+              const barberName = getBarberName(appointment);
+              const serviceTitle = getServiceTitle(appointment);
+              const servicePrice = getServicePrice(appointment);
               const isConflict = conflictingIds.has(appointment.id);
               const statusClass =
                 appointment.status === "Past"
@@ -301,14 +350,13 @@ export default function AdminAgendaPage() {
                 <div key={appointment.id} className="bg-[#111] border border-white/10 rounded-2xl p-5">
                   <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-white uppercase tracking-tight text-lg">
-                        {appointment.user?.firstName || "Cliente"} {appointment.user?.lastName || ""}
-                      </p>
+                      <p className="font-bold text-white uppercase tracking-tight text-lg">{customerName}</p>
                       <p className="text-xs text-gray-400 uppercase tracking-wider mt-1">
-                        {appointment.preferredHairdresser?.firstName || "Barbeiro"} {appointment.preferredHairdresser?.lastName || ""} • {appointment.serviceType?.title || "Serviço"}
+                        {barberName} • {serviceTitle}
                       </p>
                       <p className="text-xs text-gray-500 uppercase tracking-wider mt-1 inline-flex items-center gap-1">
-                        <Clock3 className="w-3 h-3" /> {format(appointmentDate, "dd/MM/yyyy HH:mm")}
+                        <Clock3 className="w-3 h-3" />
+                        {Number.isNaN(appointmentDate.getTime()) ? "Data inválida" : format(appointmentDate, "dd/MM/yyyy HH:mm")}
                       </p>
                     </div>
 
@@ -321,7 +369,7 @@ export default function AdminAgendaPage() {
                           <AlertTriangle className="w-3 h-3" /> Conflito
                         </span>
                       )}
-                      <span className="text-xs text-barber-gold font-semibold">{formatCurrency(Number(appointment.serviceType?.price || 0))}</span>
+                      <span className="text-xs text-barber-gold font-semibold">{formatCurrency(servicePrice)}</span>
                     </div>
 
                     <div className="flex gap-2">
