@@ -13,7 +13,7 @@ export type Agendamento = {
     telefone?: string;
 };
 
-// Mapeia o status vindo da API (inglês) para o padrão interno (português)
+// Mapeia o status da API (inglês) para o padrão interno (pt-BR)
 const normalizeStatus = (apiStatus: string): Agendamento['status'] => {
     const map: Record<string, Agendamento['status']> = {
         Upcoming: 'confirmado',
@@ -27,14 +27,20 @@ const normalizeStatus = (apiStatus: string): Agendamento['status'] => {
     return map[apiStatus] ?? 'confirmado';
 };
 
-// Converte um agendamento bruto da API para o tipo interno
 const mapApiAppointment = (raw: Record<string, unknown>): Agendamento => {
     const datetime = raw.appointmentDateTime as string;
-    const parsedDate = parseISO(datetime);
-    const data = format(parsedDate, 'yyyy-MM-dd');
-    const hora = format(parsedDate, 'HH:mm');
+    let data = '';
+    let hora = '';
+    try {
+        const parsedDate = parseISO(datetime);
+        data = format(parsedDate, 'yyyy-MM-dd');
+        hora = format(parsedDate, 'HH:mm');
+    } catch {
+        data = datetime?.slice(0, 10) ?? '';
+        hora = datetime?.slice(11, 16) ?? '';
+    }
 
-    const serviceType = raw.serviceType as Record<string, unknown> | null;
+    const serviceType = raw.serviceType as Record<string, unknown> | null | undefined;
     const servico = serviceType
         ? String(serviceType.title ?? 'Serviço')
         : String(raw.serviceTypeName ?? raw.serviceName ?? 'Serviço');
@@ -58,13 +64,35 @@ const mapApiAppointment = (raw: Record<string, unknown>): Agendamento => {
     };
 };
 
+/** Lê o barberId e token do usuário logado no localStorage */
+const getAuthInfo = (): { barberId: string | null; token: string | null } => {
+    if (typeof window === 'undefined') return { barberId: null, token: null };
+    try {
+        const raw = localStorage.getItem('barberpro-auth');
+        if (!raw) return { barberId: null, token: null };
+        const parsed = JSON.parse(raw);
+        return {
+            barberId: parsed?.state?.user?.id ?? null,
+            token: parsed?.state?.token ?? null,
+        };
+    } catch {
+        return { barberId: null, token: null };
+    }
+};
+
 type AgendaState = {
-    agendamentos: Agendamento[];
+    // todos os agendamentos carregados da API (sem filtro)
+    todosAgendamentos: Agendamento[];
+    // agendamentos do dia atual — usados no Dashboard
     agendamentosHoje: Agendamento[];
+    // agendamentos filtrados por data/status — usados na página Agenda
+    agendamentos: Agendamento[];
     isLoading: boolean;
     error: string | null;
+    subscriptionError: boolean;
 
     carregarAgendamentos: (data?: string) => Promise<void>;
+    filtrarAgendamentos: (data: string, status: string) => void;
     adicionarAgendamento: (novo: Omit<Agendamento, 'id'>) => void;
     atualizarStatus: (id: string, status: Agendamento['status']) => void;
     removerAgendamento: (id: string) => Promise<void>;
@@ -72,74 +100,102 @@ type AgendaState = {
 };
 
 export const useAgendaStore = create<AgendaState>((set, get) => ({
+    todosAgendamentos: [],
     agendamentos: [],
     agendamentosHoje: [],
     isLoading: false,
     error: null,
+    subscriptionError: false,
 
     carregarAgendamentos: async (data?: string) => {
-        set({ isLoading: true, error: null });
+        set({ isLoading: true, error: null, subscriptionError: false });
+
+        const { barberId } = getAuthInfo();
+
+        if (!barberId) {
+            set({ agendamentos: [], agendamentosHoje: [], todosAgendamentos: [], isLoading: false });
+            return;
+        }
 
         try {
-            // Descobre o barbeiro logado a partir do localStorage
-            let barberId: string | null = null;
-            if (typeof window !== 'undefined') {
-                const authRaw = localStorage.getItem('barberpro-auth');
-                if (authRaw) {
-                    const parsed = JSON.parse(authRaw);
-                    barberId = parsed?.state?.user?.id ?? null;
-                }
-            }
+            const res = await apiClient.get('/appointments', {
+                params: {
+                    preferredHairdresserId: barberId,
+                    limit: '200',
+                    sortBy: 'appointmentDateTime:asc',
+                    populate: 'serviceType',
+                },
+            });
 
-            if (!barberId) {
-                set({ agendamentos: [], agendamentosHoje: [], isLoading: false });
-                return;
-            }
-
-            // Monta query params: filtra pelo barbeiro e carrega 100 agendamentos
-            const params: Record<string, string> = {
-                preferredHairdresserId: barberId,
-                limit: '100',
-                sortBy: 'appointmentDateTime:asc',
-                populate: 'serviceType',
-            };
-
-            const res = await apiClient.get('/appointments', { params });
             const results: Record<string, unknown>[] = res.data?.results ?? [];
             const todos = results.map(mapApiAppointment);
 
             const hoje = format(new Date(), 'yyyy-MM-dd');
-            const filtroData = data ?? hoje;
-
             const agendamentosHoje = todos.filter((a) => a.data === hoje);
-            // quando uma data específica é passada, mantemos todos para o filtro na página
-            const agendamentos = filtroData !== hoje
-                ? todos.filter((a) => a.data === filtroData)
-                : todos;
 
-            set({ agendamentos, agendamentosHoje, isLoading: false });
-        } catch (err) {
+            // Se uma data foi passada, filtra por ela; senão usa todos
+            const filtroData = data ?? hoje;
+            const agendamentos = todos.filter((a) => a.data === filtroData);
+
+            set({ todosAgendamentos: todos, agendamentos, agendamentosHoje, isLoading: false });
+        } catch (err: unknown) {
             console.error('[useAgendaStore] Erro ao carregar agendamentos:', err);
+
+            // Detecta erro de assinatura (402 Payment Required)
+            const status = (err as { response?: { status?: number } })?.response?.status;
+            if (status === 402) {
+                set({
+                    subscriptionError: true,
+                    isLoading: false,
+                    agendamentos: [],
+                    agendamentosHoje: [],
+                    todosAgendamentos: [],
+                });
+                return;
+            }
+
             const message = err instanceof Error ? err.message : 'Erro ao carregar agendamentos.';
             set({ error: message, isLoading: false });
         }
     },
 
+    /** Filtra localmente a partir de todosAgendamentos (sem nova chamada à API) */
+    filtrarAgendamentos: (data: string, status: string) => {
+        const { todosAgendamentos } = get();
+        const filtered = todosAgendamentos.filter((a) => {
+            const dateMatch = a.data === data;
+            const statusMatch =
+                status === 'Todos' ||
+                status === 'todos' ||
+                a.status === status.toLowerCase() ||
+                (status === 'Confirmados' && a.status === 'confirmado') ||
+                (status === 'Pendentes' && a.status === 'pendente') ||
+                (status === 'Concluídos' && a.status === 'concluido') ||
+                (status === 'Cancelados' && a.status === 'cancelado');
+            return dateMatch && statusMatch;
+        });
+        set({ agendamentos: filtered });
+    },
+
     adicionarAgendamento: (novo) =>
         set((state) => {
-            const novo_id = { ...novo, id: Date.now().toString() };
+            const novoComId: Agendamento = { ...novo, id: Date.now().toString() };
             const hoje = format(new Date(), 'yyyy-MM-dd');
             return {
-                agendamentos: [...state.agendamentos, novo_id],
+                todosAgendamentos: [...state.todosAgendamentos, novoComId],
+                agendamentos: [...state.agendamentos, novoComId],
                 agendamentosHoje:
                     novo.data === hoje
-                        ? [...state.agendamentosHoje, novo_id]
+                        ? [...state.agendamentosHoje, novoComId]
                         : state.agendamentosHoje,
             };
         }),
 
     atualizarStatus: (id, status) =>
         set((state) => ({
+            todosAgendamentos: state.todosAgendamentos.map((a) =>
+                a.id === id ? { ...a, status } : a
+            ),
             agendamentos: state.agendamentos.map((a) =>
                 a.id === id ? { ...a, status } : a
             ),
@@ -155,6 +211,7 @@ export const useAgendaStore = create<AgendaState>((set, get) => ({
             console.warn('[useAgendaStore] Falha ao deletar no servidor, removendo localmente.', err);
         }
         set((state) => ({
+            todosAgendamentos: state.todosAgendamentos.filter((a) => a.id !== id),
             agendamentos: state.agendamentos.filter((a) => a.id !== id),
             agendamentosHoje: state.agendamentosHoje.filter((a) => a.id !== id),
         }));

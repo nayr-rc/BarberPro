@@ -14,35 +14,36 @@ import { ptBR } from "date-fns/locale";
 export default function MinhaAgenda() {
     const router = useRouter();
     const { isAuthenticated } = useAuthStore();
-    const { agendamentos, carregarAgendamentos, isLoading, removerAgendamento } = useAgendaStore();
+    const { agendamentos, carregarAgendamentos, filtrarAgendamentos, isLoading, removerAgendamento, subscriptionError } = useAgendaStore();
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<Agendamento | null>(null);
-    const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+    const hoje = new Date().toISOString().split('T')[0];
+    const [filterDate, setFilterDate] = useState(hoje);
     const [filterStatus, setFilterStatus] = useState('Todos');
-    const [appliedDate, setAppliedDate] = useState(new Date().toISOString().split('T')[0]);
-    const [appliedStatus, setAppliedStatus] = useState('Todos');
+    const [appliedDate, setAppliedDate] = useState(hoje);
 
     useEffect(() => {
         if (!isAuthenticated) {
             router.push("/auth/login");
             return;
         }
-        carregarAgendamentos(filterDate);
-    }, [isAuthenticated, carregarAgendamentos, router]);
+        // Carrega todos os agendamentos e aplica filtro do dia atual
+        carregarAgendamentos(hoje);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAuthenticated]);
 
-    const handleRefresh = () => carregarAgendamentos(appliedDate);
+    const handleRefresh = async () => {
+        await carregarAgendamentos(appliedDate);
+    };
 
     const handleApplyFilters = () => {
         setAppliedDate(filterDate);
-        setAppliedStatus(filterStatus);
-        carregarAgendamentos(filterDate);
+        // filtra localmente — sem nova chamada à API
+        filtrarAgendamentos(filterDate, filterStatus);
     };
 
-    const agendamentosFiltrados = agendamentos.filter(a => {
-        const dateMatch = a.data === appliedDate;
-        const statusMatch = appliedStatus === 'Todos' || a.status === appliedStatus.toLowerCase();
-        return dateMatch && statusMatch;
-    });
+    // agendamentos já vem filtrado do store
+    const agendamentosFiltrados = agendamentos;
 
     const formatDateLabel = (dateStr: string) => {
         const today = new Date().toISOString().split('T')[0];
@@ -92,6 +93,19 @@ export default function MinhaAgenda() {
                         <ExternalLink size={16} className="mr-2" /> Google Calendar
                     </Button>
                 </section>
+
+                {/* Banner de erro de assinatura */}
+                {subscriptionError && (
+                    <section>
+                        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-6 py-5 flex items-start gap-4">
+                            <span className="text-2xl">⚠️</span>
+                            <div>
+                                <p className="text-sm font-black uppercase tracking-widest text-amber-400 mb-1">Assinatura Inativa</p>
+                                <p className="text-xs text-gray-400">Sua assinatura está pendente ou expirada. Renove para visualizar seus agendamentos.</p>
+                            </div>
+                        </div>
+                    </section>
+                )}
 
                 {/* Filtros Glass */}
                 <section>
