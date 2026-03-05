@@ -43,18 +43,26 @@ export default function AdminDashboard() {
   const [dashboardError, setDashboardError] = useState("");
 
   useEffect(() => {
+    if (!hasHydrated) {
+      return;
+    }
+
     const isAdmin = user?.role === "admin";
 
-    if (hasHydrated && !isAuthenticated) {
+    if (!isAuthenticated) {
       router.push("/auth/login");
     } else if (!isAdmin) {
       router.push("/barbeiro/dashboard");
     }
-  }, [isAuthenticated, user, router]);
+  }, [hasHydrated, isAuthenticated, user, router]);
 
   useEffect(() => {
     const loadDashboardStats = async () => {
-      if (hasHydrated && (!isAuthenticated || user?.role !== "admin")) {
+      if (!hasHydrated) {
+        return;
+      }
+
+      if (!isAuthenticated || user?.role !== "admin") {
         return;
       }
 
@@ -122,7 +130,7 @@ export default function AdminDashboard() {
     };
 
     void loadDashboardStats();
-  }, [isAuthenticated, user]);
+  }, [hasHydrated, isAuthenticated, user]);
 
   const handleLogout = () => {
     logout();

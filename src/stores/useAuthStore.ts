@@ -18,11 +18,13 @@ export type User = {
 type AuthState = {
     user: User | null;
     token: string | null;
+    refreshToken: string | null;
     isLoading: boolean;
     isAuthenticated: boolean;
     hasHydrated: boolean;
 
-    login: (user: User, token: string) => void;
+    login: (user: User, token: string, refreshToken?: string | null) => void;
+    setTokens: (token: string, refreshToken?: string | null) => void;
     logout: () => void;
     setLoading: (loading: boolean) => void;
     setHasHydrated: (state: boolean) => void;
@@ -34,12 +36,20 @@ export const useAuthStore = create<AuthState>()(
         (set, get) => ({
             user: null,
             token: null,
+            refreshToken: null,
             isLoading: false,
             isAuthenticated: false,
             hasHydrated: false,
 
-            login: (user, token) => set({ user, token, isLoading: false, isAuthenticated: true }),
-            logout: () => set({ user: null, token: null, isAuthenticated: false }),
+            login: (user, token, refreshToken = null) =>
+                set({ user, token, refreshToken, isLoading: false, isAuthenticated: true }),
+            setTokens: (token, refreshToken) =>
+                set((state) => ({
+                    token,
+                    refreshToken: refreshToken ?? state.refreshToken,
+                    isAuthenticated: Boolean(state.user),
+                })),
+            logout: () => set({ user: null, token: null, refreshToken: null, isAuthenticated: false }),
             setLoading: (loading) => set({ isLoading: loading }),
             setHasHydrated: (state) => set({ hasHydrated: state }),
 

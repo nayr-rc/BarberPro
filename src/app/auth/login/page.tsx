@@ -32,8 +32,9 @@ export default function LoginPage() {
       const response = await apiClient.post("/auth/login", data);
       const { tokens, user } = response.data;
       const token = tokens.access.token;
+      const refreshToken = tokens.refresh?.token;
 
-      login(user, token);
+      login(user, token, refreshToken);
 
       if (user.role === "admin") {
         router.push("/admin");

@@ -41,8 +41,9 @@ export default function RegisterPage() {
 
       const { tokens, user } = response.data;
       const token = tokens.access.token;
+      const refreshToken = tokens.refresh?.token;
 
-      login(user, token);
+      login(user, token, refreshToken);
 
       // Vai para o dashboard — o SubscriptionGuard mostrará a tela de pagamento pendente
       router.push("/barbeiro/dashboard");
