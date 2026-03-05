@@ -176,7 +176,12 @@ export default function PaginaAgendar() {
           query.set('serviceId', selectedService.id);
         }
 
-        const responseAvailability = await fetch(`${API_BASE_URL}/availability?${query.toString()}`);
+        const responseAvailability = await fetch(`${API_BASE_URL}/availability?${query.toString()}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          }
+        });
         const dataAvailability = await responseAvailability.json();
 
         if (!responseAvailability.ok) {
@@ -206,44 +211,7 @@ export default function PaginaAgendar() {
     return Boolean(config && !config.isOpen);
   };
 
-  const daySlots = useMemo(() => {
-    if (availableSlots.length > 0) {
-      return availableSlots;
-    }
-
-    const dayOfWeek = selectedDate.getDay();
-    const config = barberSchedule.find((schedule) => schedule.dayId === dayOfWeek);
-
-    if (!config || !config.isOpen) {
-      return [];
-    }
-
-    const slots: TimeSlot[] = [];
-    const [startHour, startMinute] = config.startTime.split(':').map(Number);
-    const [endHour, endMinute] = config.endTime.split(':').map(Number);
-
-    const current = new Date(selectedDate);
-    current.setHours(startHour, startMinute, 0, 0);
-
-    const end = new Date(selectedDate);
-    end.setHours(endHour, endMinute, 0, 0);
-
-    while (current < end) {
-      const slotStart = new Date(current);
-      const slotEnd = addMinutes(slotStart, selectedDurationMinutes);
-
-      if (!isBefore(slotStart, new Date()) && !isAfter(slotEnd, end)) {
-        slots.push({
-          start: slotStart.toISOString(),
-          end: slotEnd.toISOString(),
-        });
-      }
-
-      current.setMinutes(current.getMinutes() + 30);
-    }
-
-    return slots;
-  }, [availableSlots, barberSchedule, selectedDate, selectedDurationMinutes]);
+  const daySlots = availableSlots;
 
   const handleBooking = (slot: TimeSlot) => {
     if (!selectedService) {
