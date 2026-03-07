@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
@@ -16,6 +16,7 @@ const formatCurrency = (value: number) =>
 function AgendamentoSucessoConteudo() {
   const params = useSearchParams();
 
+  const appointmentId = params.get('appointmentId') || '';
   const barberId = params.get('barberId') || '';
   const barberName = params.get('barberName') || 'Profissional';
   const barberPhone = params.get('barberPhone') || '';
@@ -28,6 +29,27 @@ function AgendamentoSucessoConteudo() {
 
   const appointmentDate = datetimeStart ? parseISO(datetimeStart) : new Date();
 
+  const [dynamicWhatsappLink, setDynamicWhatsappLink] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchLink() {
+      if (appointmentId) {
+        try {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://barberpro-api-v4kj.onrender.com/v1'}/appointments/${appointmentId}/whatsapp-link`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.link) {
+              setDynamicWhatsappLink(data.link);
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+    fetchLink();
+  }, [appointmentId]);
+
   // Link para adicionar ao Google Agenda
   const eventStart = format(appointmentDate, "yyyyMMdd'T'HHmmss'Z'");
   const eventEnd = format(
@@ -38,7 +60,7 @@ function AgendamentoSucessoConteudo() {
     `Agendamento - ${serviceName}`
   )}&details=${encodeURIComponent(`Agendamento com ${barberName}`)}&dates=${eventStart}/${eventEnd}`;
 
-  // Link WhatsApp para notificar o barbeiro — zero configuração, funciona para qualquer número
+  // Fallback if the dynamic link hasn't loaded or failed
   const whatsappMessage = [
     `✂️ *Novo Agendamento - BarberPro*`,
     ``,
@@ -50,11 +72,12 @@ function AgendamentoSucessoConteudo() {
     `_Acesse o painel do BarberPro para confirmar._`,
   ].join('\n');
 
-  // Remove tudo que não seja dígito do telefone do barbeiro
   const cleanPhone = barberPhone.replace(/\D/g, '');
-  const whatsappLink = cleanPhone
+  const fallbackWhatsappLink = cleanPhone
     ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMessage)}`
     : null;
+
+  const finalWhatsappLink = dynamicWhatsappLink || fallbackWhatsappLink;
 
   return (
     <div className="min-h-screen bg-barber-black text-white font-body flex items-center justify-center px-4 py-10">
@@ -100,9 +123,9 @@ function AgendamentoSucessoConteudo() {
           </div>
 
           {/* Botão WhatsApp em destaque — só aparece se o barbeiro tem telefone cadastrado */}
-          {whatsappLink && (
+          {finalWhatsappLink && (
             <a
-              href={whatsappLink}
+              href={finalWhatsappLink}
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-center gap-3 w-full rounded-2xl bg-green-500 hover:bg-green-400 active:scale-[0.98] transition-all px-6 py-4 text-black font-black text-sm uppercase tracking-widest shadow-lg shadow-green-500/20 mb-4"

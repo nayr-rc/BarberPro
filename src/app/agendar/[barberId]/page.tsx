@@ -276,8 +276,24 @@ export default function PaginaAgendar() {
 
       bookingCreated = true;
 
+      try {
+        const appointmentId = responseData.id;
+        if (appointmentId) {
+          const linkResponse = await fetch(`${API_BASE_URL}/appointments/${appointmentId}/whatsapp-link`);
+          if (linkResponse.ok) {
+            const linkData = await linkResponse.json();
+            if (linkData.link) {
+              window.open(linkData.link, '_blank');
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Falha ao abrir WhatsApp:', e);
+      }
+
       // ── Redireciona para página de sucesso ───────────────────────────────
       const query = new URLSearchParams({
+        appointmentId: responseData?.id || '',
         barberId: parsedBarberId,
         barberName: `${barber?.firstName || ''} ${barber?.lastName || ''}`.trim() || 'Profissional',
         barberPhone,         // telefone buscado do perfil do barbeiro

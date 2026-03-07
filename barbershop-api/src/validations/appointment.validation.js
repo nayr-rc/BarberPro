@@ -117,6 +117,12 @@ const getAppointments = {
   }),
 };
 
+const getWhatsappLink = {
+  params: Joi.object().keys({
+    appointmentId: Joi.string().custom(objectId).required(),
+  }),
+};
+
 module.exports = {
   createAppointment,
   createPublicAppointment,
@@ -125,4 +131,5 @@ module.exports = {
   getAppointment,
   payAppointment,
   getAppointments,
+  getWhatsappLink,
 };

@@ -239,6 +239,11 @@ const payAppointment = catchAsync(async (req, res) => {
   res.send(appointment);
 });
 
+const getWhatsappLink = catchAsync(async (req, res) => {
+  const link = await appointmentService.getWhatsappLinkForAppointment(req.params.appointmentId);
+  res.send({ link });
+});
+
 module.exports = {
   createAppointment,
   createPublicAppointment,
@@ -247,4 +252,5 @@ module.exports = {
   updateAppointment,
   deleteAppointment,
   payAppointment,
+  getWhatsappLink,
 };

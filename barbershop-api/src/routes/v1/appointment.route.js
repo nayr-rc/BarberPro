@@ -41,6 +41,10 @@ router
   .route('/:appointmentId/pay')
   .post(auth(), checkSubscription, validate(appointmentValidation.payAppointment), appointmentController.payAppointment);
 
+router
+  .route('/:appointmentId/whatsapp-link')
+  .get(validate(appointmentValidation.getWhatsappLink), appointmentController.getWhatsappLink);
+
 module.exports = router;
 
 /**

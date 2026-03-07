@@ -160,8 +160,8 @@ const createAppointment = async (appointmentBody) => {
       ...data,
       drinks: drinkIds
         ? {
-            connect: drinkIds.map((id) => ({ id })),
-          }
+          connect: drinkIds.map((id) => ({ id })),
+        }
         : undefined,
     },
   });
@@ -259,8 +259,8 @@ const updateAppointmentById = async (appointmentId, updateBody) => {
       ...data,
       drinks: drinkIds
         ? {
-            set: drinkIds.map((id) => ({ id })),
-          }
+          set: drinkIds.map((id) => ({ id })),
+        }
         : undefined,
     },
   });
@@ -298,6 +298,57 @@ const payAppointmentById = async (appointmentId) => {
   });
 };
 
+/**
+ * Generate a WhatsApp Link for an appointment
+ * @param {string} appointmentId
+ * @returns {Promise<string>}
+ */
+const getWhatsappLinkForAppointment = async (appointmentId) => {
+  const appointment = await getAppointmentById(appointmentId);
+  if (!appointment) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
+  }
+
+  const barber = appointment.preferredHairdresser;
+  if (!barber) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Barbeiro não encontrado neste agendamento');
+  }
+
+  let barberPhone = barber.contactNumber || barber.phone || '';
+  if (!barberPhone) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Telefone do barbeiro não encontrado');
+  }
+
+  barberPhone = barberPhone.replace(/\D/g, '');
+  if (!barberPhone.startsWith('55')) {
+    barberPhone = `55${barberPhone}`;
+  }
+
+  const service = appointment.serviceType;
+  const serviceName = service ? service.title || service.name : 'Serviço';
+  const servicePrice = service && service.price ? service.price.toFixed(2).replace('.', ',') : '0,00';
+  const customerName = `${appointment.firstName || ''} ${appointment.lastName || ''}`.trim() || 'Cliente';
+
+  // Format date correctly without importing entire date-fns locale if not necessary
+  const dateObj = new Date(appointment.appointmentDateTime);
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const year = dateObj.getFullYear();
+  const hours = String(dateObj.getHours()).padStart(2, '0');
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+
+  const dateFormatted = `${day}/${month}/${year} às ${hours}:${minutes}`;
+
+  const message = `Olá ${barber.firstName || 'Barbeiro'}, gostaria de confirmar meu agendamento:
+Cliente: ${customerName}
+Corte: ${serviceName}
+Valor: R$ ${servicePrice}
+Horário: ${dateFormatted}`;
+
+  const encodedMessage = encodeURIComponent(message);
+  return `https://wa.me/${barberPhone}?text=${encodedMessage}`;
+};
+
 module.exports = {
   createAppointment,
   queryAppointments,
@@ -305,4 +356,5 @@ module.exports = {
   updateAppointmentById,
   deleteAppointmentById,
   payAppointmentById,
+  getWhatsappLinkForAppointment,
 };
