@@ -27,6 +27,16 @@ const normalizeStatus = (apiStatus: string): Agendamento['status'] => {
     return map[apiStatus] ?? 'confirmado';
 };
 
+const toApiStatus = (status: Agendamento['status']): 'Upcoming' | 'Past' | 'Cancelled' => {
+    const map: Record<Agendamento['status'], 'Upcoming' | 'Past' | 'Cancelled'> = {
+        pendente: 'Upcoming',
+        confirmado: 'Upcoming',
+        concluido: 'Past',
+        cancelado: 'Cancelled',
+    };
+    return map[status];
+};
+
 const mapApiAppointment = (raw: Record<string, unknown>): Agendamento => {
     const datetime = raw.appointmentDateTime as string;
     let data = '';
@@ -94,7 +104,7 @@ type AgendaState = {
     carregarAgendamentos: (data?: string) => Promise<void>;
     filtrarAgendamentos: (data: string, status: string) => void;
     adicionarAgendamento: (novo: Omit<Agendamento, 'id'>) => void;
-    atualizarStatus: (id: string, status: Agendamento['status']) => void;
+    atualizarStatus: (id: string, status: Agendamento['status']) => Promise<void>;
     removerAgendamento: (id: string) => Promise<void>;
     setLoading: (loading: boolean) => void;
 };
@@ -191,18 +201,32 @@ export const useAgendaStore = create<AgendaState>((set, get) => ({
             };
         }),
 
-    atualizarStatus: (id, status) =>
-        set((state) => ({
-            todosAgendamentos: state.todosAgendamentos.map((a) =>
-                a.id === id ? { ...a, status } : a
-            ),
-            agendamentos: state.agendamentos.map((a) =>
-                a.id === id ? { ...a, status } : a
-            ),
-            agendamentosHoje: state.agendamentosHoje.map((a) =>
-                a.id === id ? { ...a, status } : a
-            ),
-        })),
+    atualizarStatus: async (id, status) => {
+        const applyLocalStatus = (nextStatus: Agendamento['status']) =>
+            set((state) => ({
+                todosAgendamentos: state.todosAgendamentos.map((a) =>
+                    a.id === id ? { ...a, status: nextStatus } : a
+                ),
+                agendamentos: state.agendamentos.map((a) =>
+                    a.id === id ? { ...a, status: nextStatus } : a
+                ),
+                agendamentosHoje: state.agendamentosHoje.map((a) =>
+                    a.id === id ? { ...a, status: nextStatus } : a
+                ),
+            }));
+
+        const previous = get().todosAgendamentos.find((a) => a.id === id)?.status;
+        applyLocalStatus(status);
+
+        try {
+            await apiClient.patch(`/appointments/${id}`, { status: toApiStatus(status) });
+        } catch (err) {
+            if (previous) {
+                applyLocalStatus(previous);
+            }
+            throw err;
+        }
+    },
 
     removerAgendamento: async (id) => {
         try {

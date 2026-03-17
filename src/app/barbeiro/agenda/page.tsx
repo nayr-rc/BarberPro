@@ -14,13 +14,14 @@ import { ptBR } from "date-fns/locale";
 export default function MinhaAgenda() {
     const router = useRouter();
     const { hasHydrated, isAuthenticated } = useAuthStore();
-    const { agendamentos, carregarAgendamentos, filtrarAgendamentos, isLoading, removerAgendamento, subscriptionError } = useAgendaStore();
+    const { agendamentos, carregarAgendamentos, filtrarAgendamentos, atualizarStatus, isLoading, removerAgendamento, subscriptionError } = useAgendaStore();
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<Agendamento | null>(null);
     const hoje = new Date().toISOString().split('T')[0];
     const [filterDate, setFilterDate] = useState(hoje);
     const [filterStatus, setFilterStatus] = useState('Todos');
     const [appliedDate, setAppliedDate] = useState(hoje);
+    const [updatingId, setUpdatingId] = useState<string | null>(null);
 
     useEffect(() => {
         if (hasHydrated && !isAuthenticated) {
@@ -60,6 +61,19 @@ export default function MinhaAgenda() {
         if (confirm("Deseja realmente cancelar este agendamento?")) {
             removerAgendamento(id);
             if (selectedEvent?.id === id) setSelectedEvent(null);
+        }
+    };
+
+    const handleMarkAttended = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        setUpdatingId(id);
+        try {
+            await atualizarStatus(id, 'concluido');
+            setSelectedEvent((current) => (current && current.id === id ? { ...current, status: 'concluido' } : current));
+        } catch {
+            alert('Não foi possível marcar como atendido agora.');
+        } finally {
+            setUpdatingId(null);
         }
     };
 
@@ -184,6 +198,15 @@ export default function MinhaAgenda() {
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <span className="text-emerald-400 font-black text-xl hidden sm:block">R$ {a.valor}</span>
+                                        {a.status !== 'concluido' && a.status !== 'cancelado' && (
+                                            <button
+                                                onClick={(e) => void handleMarkAttended(e, a.id)}
+                                                disabled={updatingId === a.id}
+                                                className="px-3 py-2 text-[10px] uppercase tracking-widest rounded-xl border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-all disabled:opacity-50"
+                                            >
+                                                {updatingId === a.id ? 'Salvando...' : 'Cliente atendido'}
+                                            </button>
+                                        )}
                                         <button
                                             onClick={(e) => handleCancelClick(e, a.id)}
                                             className="p-3 text-gray-700 hover:text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all"
@@ -254,9 +277,20 @@ export default function MinhaAgenda() {
                                 >
                                     Cancelar Atendimento
                                 </Button>
-                                <Button variant="gold" className="flex-1 py-4 text-[10px] uppercase tracking-[0.2em] font-black">
-                                    Iniciar Serviço
-                                </Button>
+                                {selectedEvent.status !== 'concluido' && selectedEvent.status !== 'cancelado' ? (
+                                    <Button
+                                        onClick={(e) => void handleMarkAttended(e, selectedEvent.id)}
+                                        variant="gold"
+                                        className="flex-1 py-4 text-[10px] uppercase tracking-[0.2em] font-black"
+                                        loading={updatingId === selectedEvent.id}
+                                    >
+                                        Cliente Atendido
+                                    </Button>
+                                ) : (
+                                    <Button variant="outline" className="flex-1 py-4 text-[10px] uppercase tracking-[0.2em] font-black" disabled>
+                                        Atendimento {selectedEvent.status === 'concluido' ? 'Concluído' : 'Cancelado'}
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     </Card>

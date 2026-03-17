@@ -71,7 +71,7 @@ const getAvailability = catchAsync(async (req, res) => {
         gte: startOfDay(selectedDate),
         lte: endOfDay(selectedDate),
       },
-      status: { not: 'Cancelled' },
+      status: 'Upcoming',
     },
     include: {
       serviceType: {
@@ -128,20 +128,65 @@ const getAvailability = catchAsync(async (req, res) => {
 const updateAvailability = catchAsync(async (req, res) => {
   const { barberId, workingHours } = req.body;
 
+  if (!barberId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'barberId é obrigatório');
+  }
+
+  if (!Array.isArray(workingHours) || workingHours.length !== 7) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'workingHours deve conter os 7 dias da semana');
+  }
+
+  const dayIds = new Set();
+  const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+  const normalizedWorkingHours = workingHours.map((dayConfig) => {
+    const dayId = Number(dayConfig?.dayId);
+    const isOpen = Boolean(dayConfig?.isOpen);
+    const startTime = String(dayConfig?.startTime || '09:00');
+    const endTime = String(dayConfig?.endTime || '19:00');
+
+    if (!Number.isInteger(dayId) || dayId < 0 || dayId > 6) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'dayId inválido em workingHours');
+    }
+
+    if (dayIds.has(dayId)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Não pode haver dayId duplicado em workingHours');
+    }
+    dayIds.add(dayId);
+
+    if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Horários devem estar no formato HH:mm');
+    }
+
+    if (isOpen && startTime >= endTime) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Hora inicial deve ser menor que hora final nos dias abertos');
+    }
+
+    return {
+      dayId,
+      isOpen,
+      startTime,
+      endTime,
+    };
+  });
+
+  if (dayIds.size !== 7) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'workingHours deve incluir todos os dias (0 a 6)');
+  }
+
   // Check if the user trying to update is the barber themselves (security check added)
   if (req.user && req.user.role !== 'admin' && req.user.id !== barberId) {
     throw new ApiError(httpStatus.FORBIDDEN, 'Você só pode alterar sua própria agenda');
   }
 
   const barber = await prisma.user.findUnique({ where: { id: barberId } });
-  if (!barber) {
+  if (!barber || barber.role !== 'barber') {
     throw new ApiError(httpStatus.NOT_FOUND, 'Barbeiro não encontrado');
   }
 
   const updatedBarber = await prisma.user.update({
     where: { id: barberId },
     data: {
-      workingHours: JSON.stringify(workingHours),
+      workingHours: JSON.stringify(normalizedWorkingHours),
     },
   });
 

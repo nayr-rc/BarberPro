@@ -15,6 +15,24 @@ const splitName = (name) => {
   };
 };
 
+const markOverdueAppointmentsAsPast = async () => {
+  if (typeof prisma.appointment?.updateMany !== 'function') {
+    return;
+  }
+
+  await prisma.appointment.updateMany({
+    where: {
+      status: 'Upcoming',
+      appointmentDateTime: {
+        lt: new Date(),
+      },
+    },
+    data: {
+      status: 'Past',
+    },
+  });
+};
+
 const normalizeAppointmentFilter = (filter = {}) => {
   const normalizedFilter = {
     ...filter,
@@ -112,7 +130,7 @@ const ensureSlotIsAvailable = async ({ preferredHairdresserId, appointmentDateTi
         gte: startOfDay(requestedStart),
         lte: endOfDay(requestedStart),
       },
-      status: { not: 'Cancelled' },
+      status: 'Upcoming',
     },
     include: {
       serviceType: {
@@ -174,6 +192,8 @@ const createAppointment = async (appointmentBody) => {
  * @returns {Promise<Object>}
  */
 const queryAppointments = async (filter, options = {}) => {
+  await markOverdueAppointmentsAsPast();
+
   const page = Number(options.page) || 1;
   const limit = Number(options.limit) || 10;
   const { sortBy, populate } = options;

@@ -35,6 +35,7 @@ export default function DisponibilidadeBarbeiro() {
     const router = useRouter();
     const [schedule, setSchedule] = useState<DayConfig[]>(DEFAULT_CONFIG);
     const [isSaving, setIsSaving] = useState(false);
+    const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
 
     useEffect(() => {
@@ -43,7 +44,12 @@ export default function DisponibilidadeBarbeiro() {
             return;
         }
 
+        if (!hasHydrated || !isAuthenticated || !user?.id) {
+            return;
+        }
+
         const fetchSchedule = async () => {
+            setIsLoadingSchedule(true);
             try {
                 const { data } = await apiClient.get(`/availability?barberId=${user?.id}`);
                 if (data.schedule && data.schedule.length > 0) {
@@ -61,11 +67,13 @@ export default function DisponibilidadeBarbeiro() {
                 }
             } catch (err) {
                 console.warn("Erro ao carregar agenda:", err);
+            } finally {
+                setIsLoadingSchedule(false);
             }
         };
 
         fetchSchedule();
-    }, [isAuthenticated, user, router]);
+    }, [hasHydrated, isAuthenticated, user?.id, router]);
 
     const handleToggle = (id: number) => {
         setSchedule(prev => prev.map(day =>
@@ -80,6 +88,17 @@ export default function DisponibilidadeBarbeiro() {
     };
 
     const saveSchedule = async () => {
+        if (!user?.id) {
+            alert('Usuário não identificado. Faça login novamente.');
+            return;
+        }
+
+        const invalidDay = schedule.find((day) => day.isOpen && day.startTime >= day.endTime);
+        if (invalidDay) {
+            alert(`No dia ${invalidDay.dayLabel}, o horário inicial deve ser menor que o final.`);
+            return;
+        }
+
         setIsSaving(true);
         try {
             await apiClient.post('/availability', {
@@ -114,7 +133,7 @@ export default function DisponibilidadeBarbeiro() {
                 </div>
                 <Button
                     onClick={saveSchedule}
-                    loading={isSaving}
+                    loading={isSaving || isLoadingSchedule}
                     variant="gold"
                     className="min-h-0 h-12 px-8 text-[10px] uppercase font-black tracking-widest shadow-2xl shadow-amber-500/20"
                 >
