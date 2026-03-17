@@ -13,6 +13,28 @@ export type Agendamento = {
     telefone?: string;
 };
 
+const toDateTime = (agendamento: Agendamento): Date => {
+    const parsed = new Date(`${agendamento.data}T${agendamento.hora}:00`);
+    return parsed;
+};
+
+const isVisibleInBarberList = (agendamento: Agendamento): boolean => {
+    if (agendamento.status === 'concluido' || agendamento.status === 'cancelado') {
+        return false;
+    }
+
+    const dateTime = toDateTime(agendamento);
+    if (Number.isNaN(dateTime.getTime())) {
+        return true;
+    }
+
+    return dateTime.getTime() > Date.now();
+};
+
+const applyVisibilityRules = (list: Agendamento[]): Agendamento[] => {
+    return list.filter(isVisibleInBarberList);
+};
+
 // Mapeia o status da API (inglês) para o padrão interno (pt-BR)
 const normalizeStatus = (apiStatus: string): Agendamento['status'] => {
     const map: Record<string, Agendamento['status']> = {
@@ -106,6 +128,7 @@ type AgendaState = {
     adicionarAgendamento: (novo: Omit<Agendamento, 'id'>) => void;
     atualizarStatus: (id: string, status: Agendamento['status']) => Promise<void>;
     removerAgendamento: (id: string) => Promise<void>;
+    limparAgendamentosExpirados: () => void;
     setLoading: (loading: boolean) => void;
 };
 
@@ -131,6 +154,7 @@ export const useAgendaStore = create<AgendaState>((set, get) => ({
             const res = await apiClient.get('/appointments', {
                 params: {
                     preferredHairdresserId: barberId,
+                    status: 'Upcoming',
                     limit: '200',
                     sortBy: 'appointmentDateTime:asc',
                     populate: 'serviceType',
@@ -138,7 +162,7 @@ export const useAgendaStore = create<AgendaState>((set, get) => ({
             });
 
             const results: Record<string, unknown>[] = res.data?.results ?? [];
-            const todos = results.map(mapApiAppointment);
+            const todos = applyVisibilityRules(results.map(mapApiAppointment));
 
             const hoje = format(new Date(), 'yyyy-MM-dd');
             const agendamentosHoje = todos.filter((a) => a.data === hoje);
@@ -172,6 +196,7 @@ export const useAgendaStore = create<AgendaState>((set, get) => ({
     /** Filtra localmente a partir de todosAgendamentos (sem nova chamada à API) */
     filtrarAgendamentos: (data: string, status: string) => {
         const { todosAgendamentos } = get();
+        const visibleAgendamentos = applyVisibilityRules(todosAgendamentos);
         const filtered = todosAgendamentos.filter((a) => {
             const dateMatch = a.data === data;
             const statusMatch =
@@ -184,45 +209,54 @@ export const useAgendaStore = create<AgendaState>((set, get) => ({
                 (status === 'Cancelados' && a.status === 'cancelado');
             return dateMatch && statusMatch;
         });
-        set({ agendamentos: filtered });
+        set({ agendamentos: applyVisibilityRules(filtered), todosAgendamentos: visibleAgendamentos });
     },
 
     adicionarAgendamento: (novo) =>
         set((state) => {
             const novoComId: Agendamento = { ...novo, id: Date.now().toString() };
             const hoje = format(new Date(), 'yyyy-MM-dd');
+            const nextTodos = applyVisibilityRules([...state.todosAgendamentos, novoComId]);
+            const nextAgendamentos = applyVisibilityRules([...state.agendamentos, novoComId]);
+            const nextAgendamentosHoje =
+                novo.data === hoje
+                    ? applyVisibilityRules([...state.agendamentosHoje, novoComId])
+                    : state.agendamentosHoje;
+
             return {
-                todosAgendamentos: [...state.todosAgendamentos, novoComId],
-                agendamentos: [...state.agendamentos, novoComId],
-                agendamentosHoje:
-                    novo.data === hoje
-                        ? [...state.agendamentosHoje, novoComId]
-                        : state.agendamentosHoje,
+                todosAgendamentos: nextTodos,
+                agendamentos: nextAgendamentos,
+                agendamentosHoje: nextAgendamentosHoje,
             };
         }),
 
     atualizarStatus: async (id, status) => {
-        const applyLocalStatus = (nextStatus: Agendamento['status']) =>
+        const currentState = get();
+        const previousAppointment = currentState.todosAgendamentos.find((a) => a.id === id);
+
+        const removeLocal = () =>
             set((state) => ({
-                todosAgendamentos: state.todosAgendamentos.map((a) =>
-                    a.id === id ? { ...a, status: nextStatus } : a
-                ),
-                agendamentos: state.agendamentos.map((a) =>
-                    a.id === id ? { ...a, status: nextStatus } : a
-                ),
-                agendamentosHoje: state.agendamentosHoje.map((a) =>
-                    a.id === id ? { ...a, status: nextStatus } : a
-                ),
+                todosAgendamentos: state.todosAgendamentos.filter((a) => a.id !== id),
+                agendamentos: state.agendamentos.filter((a) => a.id !== id),
+                agendamentosHoje: state.agendamentosHoje.filter((a) => a.id !== id),
             }));
 
-        const previous = get().todosAgendamentos.find((a) => a.id === id)?.status;
-        applyLocalStatus(status);
+        if (status === 'concluido' || status === 'cancelado') {
+            removeLocal();
+        }
 
         try {
             await apiClient.patch(`/appointments/${id}`, { status: toApiStatus(status) });
         } catch (err) {
-            if (previous) {
-                applyLocalStatus(previous);
+            if (previousAppointment) {
+                set((state) => ({
+                    todosAgendamentos: applyVisibilityRules([...state.todosAgendamentos, previousAppointment]),
+                    agendamentos: applyVisibilityRules([...state.agendamentos, previousAppointment]),
+                    agendamentosHoje:
+                        previousAppointment.data === format(new Date(), 'yyyy-MM-dd')
+                            ? applyVisibilityRules([...state.agendamentosHoje, previousAppointment])
+                            : state.agendamentosHoje,
+                }));
             }
             throw err;
         }
@@ -238,6 +272,14 @@ export const useAgendaStore = create<AgendaState>((set, get) => ({
             todosAgendamentos: state.todosAgendamentos.filter((a) => a.id !== id),
             agendamentos: state.agendamentos.filter((a) => a.id !== id),
             agendamentosHoje: state.agendamentosHoje.filter((a) => a.id !== id),
+        }));
+    },
+
+    limparAgendamentosExpirados: () => {
+        set((state) => ({
+            todosAgendamentos: applyVisibilityRules(state.todosAgendamentos),
+            agendamentos: applyVisibilityRules(state.agendamentos),
+            agendamentosHoje: applyVisibilityRules(state.agendamentosHoje),
         }));
     },
 
