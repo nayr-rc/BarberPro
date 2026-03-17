@@ -14,7 +14,7 @@ import { ptBR } from "date-fns/locale";
 export default function MinhaAgenda() {
     const router = useRouter();
     const { hasHydrated, isAuthenticated } = useAuthStore();
-    const { agendamentos, carregarAgendamentos, filtrarAgendamentos, atualizarStatus, isLoading, removerAgendamento, subscriptionError } = useAgendaStore();
+    const { agendamentos, carregarAgendamentos, filtrarAgendamentos, atualizarStatus, limparAgendamentosExpirados, isLoading, removerAgendamento, subscriptionError } = useAgendaStore();
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<Agendamento | null>(null);
     const hoje = new Date().toISOString().split('T')[0];
@@ -32,6 +32,14 @@ export default function MinhaAgenda() {
         carregarAgendamentos(hoje);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isAuthenticated]);
+
+    useEffect(() => {
+        const interval = window.setInterval(() => {
+            limparAgendamentosExpirados();
+        }, 30000);
+
+        return () => window.clearInterval(interval);
+    }, [limparAgendamentosExpirados]);
 
     const handleRefresh = async () => {
         await carregarAgendamentos(appliedDate);

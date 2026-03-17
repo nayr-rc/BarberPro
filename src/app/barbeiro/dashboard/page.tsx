@@ -12,7 +12,7 @@ import NovoAgendamentoModal from "@/components/modals/NovoAgendamentoModal";
 export default function Dashboard() {
     const router = useRouter();
     const { hasHydrated, user, logout, isAuthenticated } = useAuthStore();
-    const { agendamentosHoje, carregarAgendamentos, atualizarStatus, isLoading } = useAgendaStore();
+    const { agendamentosHoje, carregarAgendamentos, atualizarStatus, limparAgendamentosExpirados, isLoading } = useAgendaStore();
     const [modalOpen, setModalOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -22,6 +22,14 @@ export default function Dashboard() {
             carregarAgendamentos();
         }
     }, [isAuthenticated, carregarAgendamentos]);
+
+    useEffect(() => {
+        const interval = window.setInterval(() => {
+            limparAgendamentosExpirados();
+        }, 30000);
+
+        return () => window.clearInterval(interval);
+    }, [limparAgendamentosExpirados]);
 
     const handleLogout = () => {
         logout();
