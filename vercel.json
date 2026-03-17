@@ -1,0 +1,9 @@
+{
+    "version": 2,
+    "rewrites": [
+        {
+            "source": "/api/:match*",
+            "destination": "https://barbershop-api-seu-link.render.com/api/:match*"
+        }
+    ]
+}

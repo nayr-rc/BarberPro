@@ -1,0 +1,380 @@
+const httpStatus = require('http-status');
+const { addMinutes, endOfDay, startOfDay } = require('date-fns');
+const ApiError = require('../utils/ApiError');
+const prisma = require('../client');
+
+const splitName = (name) => {
+  if (!name || typeof name !== 'string') {
+    return { firstName: undefined, lastName: undefined };
+  }
+
+  const [firstName, ...rest] = name.trim().split(/\s+/);
+  return {
+    firstName,
+    lastName: rest.join(' ') || '-',
+  };
+};
+
+const markOverdueAppointmentsAsPast = async () => {
+  if (typeof prisma.appointment?.updateMany !== 'function') {
+    return;
+  }
+
+  await prisma.appointment.updateMany({
+    where: {
+      status: 'Upcoming',
+      appointmentDateTime: {
+        lt: new Date(),
+      },
+    },
+    data: {
+      status: 'Past',
+    },
+  });
+};
+
+const normalizeAppointmentFilter = (filter = {}) => {
+  const normalizedFilter = {
+    ...filter,
+    preferredHairdresserId: filter.preferredHairdresserId || filter.preferredHairdresser,
+    serviceCategoryId: filter.serviceCategoryId || filter.serviceCategory,
+    serviceTypeId: filter.serviceTypeId || filter.serviceType,
+  };
+
+  delete normalizedFilter.preferredHairdresser;
+  delete normalizedFilter.serviceCategory;
+  delete normalizedFilter.serviceType;
+
+  Object.keys(normalizedFilter).forEach((key) => {
+    if (normalizedFilter[key] === undefined) {
+      delete normalizedFilter[key];
+    }
+  });
+
+  return normalizedFilter;
+};
+
+const normalizeAppointmentPayload = async (appointmentBody) => {
+  const {
+    preferredHairdresser,
+    preferredHairdresserId,
+    barberId,
+    serviceCategory,
+    serviceCategoryId,
+    serviceType,
+    serviceTypeId,
+    serviceId,
+    guestName,
+    guestPhone,
+    datetimeStart,
+    drinkIds,
+    drinks,
+    ...rest
+  } = appointmentBody;
+
+  const namesFromGuest = splitName(guestName);
+
+  const normalizedPayload = {
+    ...rest,
+    firstName: rest.firstName || namesFromGuest.firstName,
+    lastName: rest.lastName || namesFromGuest.lastName,
+    contactNumber: rest.contactNumber || guestPhone,
+    preferredHairdresserId: preferredHairdresserId || preferredHairdresser || barberId,
+    serviceCategoryId: serviceCategoryId || serviceCategory,
+    serviceTypeId: serviceTypeId || serviceType || serviceId,
+    appointmentDateTime: rest.appointmentDateTime || datetimeStart,
+    drinks: drinks || drinkIds,
+  };
+
+  if (!normalizedPayload.serviceCategoryId && normalizedPayload.serviceTypeId) {
+    const relatedService = await prisma.service.findUnique({
+      where: { id: normalizedPayload.serviceTypeId },
+      select: { categoryId: true },
+    });
+
+    if (relatedService) {
+      normalizedPayload.serviceCategoryId = relatedService.categoryId;
+    }
+  }
+
+  return normalizedPayload;
+};
+
+const assertRequiredCreateFields = (appointmentBody) => {
+  const requiredFields = [
+    'firstName',
+    'lastName',
+    'contactNumber',
+    'email',
+    'userId',
+    'preferredHairdresserId',
+    'serviceCategoryId',
+    'serviceTypeId',
+    'appointmentDateTime',
+  ];
+
+  const missingFields = requiredFields.filter((field) => !appointmentBody[field]);
+
+  if (missingFields.length) {
+    throw new ApiError(httpStatus.BAD_REQUEST, `Campos obrigatórios ausentes no agendamento: ${missingFields.join(', ')}`);
+  }
+};
+
+const ensureSlotIsAvailable = async ({ preferredHairdresserId, appointmentDateTime, serviceTypeId }) => {
+  const requestedStart = new Date(appointmentDateTime);
+
+  const existingAppointments = await prisma.appointment.findMany({
+    where: {
+      preferredHairdresserId,
+      appointmentDateTime: {
+        gte: startOfDay(requestedStart),
+        lte: endOfDay(requestedStart),
+      },
+      status: 'Upcoming',
+    },
+    include: {
+      serviceType: {
+        select: { durationMinutes: true },
+      },
+    },
+  });
+
+  const requestedService = await prisma.service.findUnique({
+    where: { id: String(serviceTypeId || '') },
+    select: { durationMinutes: true },
+  });
+
+  const requestedDurationMinutes =
+    requestedService && requestedService.durationMinutes ? requestedService.durationMinutes : 30;
+  const requestedEnd = addMinutes(requestedStart, requestedDurationMinutes);
+
+  const conflictingAppointment = existingAppointments.find((appointment) => {
+    const appointmentStart = new Date(appointment.appointmentDateTime);
+    const appointmentDurationMinutes =
+      appointment.serviceType && appointment.serviceType.durationMinutes ? appointment.serviceType.durationMinutes : 30;
+    const appointmentEnd = addMinutes(appointmentStart, appointmentDurationMinutes);
+
+    return requestedStart < appointmentEnd && requestedEnd > appointmentStart;
+  });
+
+  if (conflictingAppointment) {
+    throw new ApiError(httpStatus.CONFLICT, 'Este horário acabou de ser reservado. Escolha outro horário.');
+  }
+};
+
+/**
+ * Create an appointment
+ * @param {Object} appointmentBody
+ * @returns {Promise<Object>}
+ */
+const createAppointment = async (appointmentBody) => {
+  const normalizedPayload = await normalizeAppointmentPayload(appointmentBody);
+  assertRequiredCreateFields(normalizedPayload);
+  await ensureSlotIsAvailable(normalizedPayload);
+  const { drinks: drinkIds, ...data } = normalizedPayload;
+
+  return prisma.appointment.create({
+    data: {
+      ...data,
+      drinks: drinkIds
+        ? {
+          connect: drinkIds.map((id) => ({ id })),
+        }
+        : undefined,
+    },
+  });
+};
+
+/**
+ * Query for appointments
+ * @param {Object} filter
+ * @param {Object} options
+ * @returns {Promise<Object>}
+ */
+const queryAppointments = async (filter, options = {}) => {
+  await markOverdueAppointmentsAsPast();
+
+  const page = Number(options.page) || 1;
+  const limit = Number(options.limit) || 10;
+  const { sortBy, populate } = options;
+  const skip = (page - 1) * limit;
+  const whereFilter = normalizeAppointmentFilter(filter);
+
+  const include = {};
+  if (populate) {
+    populate.split(',').forEach((p) => {
+      const field = p.trim();
+      if (field === 'preferredHairdresser') include.preferredHairdresser = true;
+      if (field === 'serviceCategory') include.serviceCategory = true;
+      if (field === 'serviceType') include.serviceType = true;
+      if (field === 'drinks') include.drinks = true;
+      if (field === 'user') include.user = true;
+    });
+  }
+
+  let orderBy = {};
+  if (sortBy) {
+    const [field, order] = sortBy.split(':');
+    orderBy[field] = order || 'asc';
+  } else {
+    orderBy = { appointmentDateTime: 'asc' };
+  }
+
+  const results = await prisma.appointment.findMany({
+    where: whereFilter,
+    take: limit,
+    skip,
+    orderBy,
+    include: Object.keys(include).length > 0 ? include : undefined,
+  });
+
+  const totalResults = await prisma.appointment.count({ where: whereFilter });
+  const totalPages = Math.ceil(totalResults / limit);
+
+  return {
+    results,
+    page,
+    limit,
+    totalPages,
+    totalResults,
+  };
+};
+
+/**
+ * Get appointment by id
+ * @param {string} id
+ * @returns {Promise<Object>}
+ */
+const getAppointmentById = async (id) => {
+  return prisma.appointment.findUnique({
+    where: { id },
+    include: {
+      preferredHairdresser: true,
+      serviceCategory: true,
+      serviceType: true,
+      drinks: true,
+      user: true,
+    },
+  });
+};
+
+/**
+ * Update appointment by id
+ * @param {string} appointmentId
+ * @param {Object} updateBody
+ * @returns {Promise<Object>}
+ */
+const updateAppointmentById = async (appointmentId, updateBody) => {
+  const appointment = await getAppointmentById(appointmentId);
+  if (!appointment) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
+  }
+
+  const normalizedPayload = await normalizeAppointmentPayload(updateBody);
+  const { drinks: drinkIds, ...data } = normalizedPayload;
+
+  return prisma.appointment.update({
+    where: { id: appointmentId },
+    data: {
+      ...data,
+      drinks: drinkIds
+        ? {
+          set: drinkIds.map((id) => ({ id })),
+        }
+        : undefined,
+    },
+  });
+};
+
+/**
+ * Delete appointment by id
+ * @param {string} appointmentId
+ * @returns {Promise<Object>}
+ */
+const deleteAppointmentById = async (appointmentId) => {
+  const appointment = await getAppointmentById(appointmentId);
+  if (!appointment) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
+  }
+  await prisma.appointment.delete({
+    where: { id: appointmentId },
+  });
+  return appointment;
+};
+
+/**
+ * Pay appointment by id
+ * @param {string} appointmentId
+ * @returns {Promise<Object>}
+ */
+const payAppointmentById = async (appointmentId) => {
+  const appointment = await getAppointmentById(appointmentId);
+  if (!appointment) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
+  }
+  return prisma.appointment.update({
+    where: { id: appointmentId },
+    data: { paymentStatus: 'Paid' },
+  });
+};
+
+/**
+ * Generate a WhatsApp Link for an appointment
+ * @param {string} appointmentId
+ * @returns {Promise<string>}
+ */
+const getWhatsappLinkForAppointment = async (appointmentId) => {
+  const appointment = await getAppointmentById(appointmentId);
+  if (!appointment) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
+  }
+
+  const barber = appointment.preferredHairdresser;
+  if (!barber) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Barbeiro não encontrado neste agendamento');
+  }
+
+  let barberPhone = barber.contactNumber || barber.phone || '';
+  if (!barberPhone) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Telefone do barbeiro não encontrado');
+  }
+
+  barberPhone = barberPhone.replace(/\D/g, '');
+  if (!barberPhone.startsWith('55')) {
+    barberPhone = `55${barberPhone}`;
+  }
+
+  const service = appointment.serviceType;
+  const serviceName = service ? service.title || service.name : 'Serviço';
+  const servicePrice = service && service.price ? service.price.toFixed(2).replace('.', ',') : '0,00';
+  const customerName = `${appointment.firstName || ''} ${appointment.lastName || ''}`.trim() || 'Cliente';
+
+  // Format date correctly without importing entire date-fns locale if not necessary
+  const dateObj = new Date(appointment.appointmentDateTime);
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const year = dateObj.getFullYear();
+  const hours = String(dateObj.getHours()).padStart(2, '0');
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+
+  const dateFormatted = `${day}/${month}/${year} às ${hours}:${minutes}`;
+
+  const message = `Olá ${barber.firstName || 'Barbeiro'}, gostaria de confirmar meu agendamento:
+Cliente: ${customerName}
+Corte: ${serviceName}
+Valor: R$ ${servicePrice}
+Horário: ${dateFormatted}`;
+
+  const encodedMessage = encodeURIComponent(message);
+  return `https://wa.me/${barberPhone}?text=${encodedMessage}`;
+};
+
+module.exports = {
+  createAppointment,
+  queryAppointments,
+  getAppointmentById,
+  updateAppointmentById,
+  deleteAppointmentById,
+  payAppointmentById,
+  getWhatsappLinkForAppointment,
+};

@@ -1,0 +1,20 @@
+# Dependencies
+node_modules
+
+# yarn error logs
+yarn-error.log
+
+# Environment varibales
+.env*
+!.env*.example
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Temporary scripts
+force-active.js
+test-db.js
+
+# Code coverage
+coverage
