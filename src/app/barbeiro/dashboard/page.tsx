@@ -12,9 +12,10 @@ import NovoAgendamentoModal from "@/components/modals/NovoAgendamentoModal";
 export default function Dashboard() {
     const router = useRouter();
     const { hasHydrated, user, logout, isAuthenticated } = useAuthStore();
-    const { agendamentosHoje, carregarAgendamentos, isLoading } = useAgendaStore();
+    const { agendamentosHoje, carregarAgendamentos, atualizarStatus, isLoading } = useAgendaStore();
     const [modalOpen, setModalOpen] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [updatingId, setUpdatingId] = useState<string | null>(null);
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -32,6 +33,17 @@ export default function Dashboard() {
         navigator.clipboard.writeText(link);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleMarcarAtendido = async (id: string) => {
+        setUpdatingId(id);
+        try {
+            await atualizarStatus(id, "concluido");
+        } catch {
+            alert("Não foi possível marcar como atendido agora.");
+        } finally {
+            setUpdatingId(null);
+        }
     };
 
     return (
@@ -174,7 +186,20 @@ export default function Dashboard() {
                                                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{a.servico}</p>
                                             </div>
                                         </div>
-                                        <span className="text-emerald-400 font-black text-lg">R$ {a.valor}</span>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-emerald-400 font-black text-lg">R$ {a.valor}</span>
+                                            {a.status !== "concluido" && a.status !== "cancelado" && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={updatingId === a.id}
+                                                    onClick={() => void handleMarcarAtendido(a.id)}
+                                                    className="min-h-0 py-2 text-[10px] font-black uppercase tracking-widest border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                                                >
+                                                    Cliente Atendido
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
