@@ -5,25 +5,52 @@ Aplicativo mobile em React Native (Expo) para operação do barbeiro.
 ## Requisitos
 
 - Node.js 18+
-- Expo Go no celular ou emulador Android/iOS
-- API backend rodando (padrão: `http://localhost:3001/api`)
+- Expo Go atualizado no celular ou emulador Android/iOS
+- Dependencias instaladas com `npm install`
+- API backend disponivel em `EXPO_PUBLIC_API_URL` ou fallback para producao (`https://barberpro-api-v4kj.onrender.com/v1`)
 
 ## Configuração
 
-1. Defina a API da sua rede local:
+1. Instale as dependencias:
+
+```bash
+npm install
+```
+
+2. Se for usar backend local, defina a API da sua rede local:
 
 ```bash
 # PowerShell
-$env:EXPO_PUBLIC_API_URL="http://SEU_IP_LOCAL:3001/api"
+$env:EXPO_PUBLIC_API_URL="http://SEU_IP_LOCAL:3000/v1"
 ```
 
-Exemplo Android Emulator: `http://10.0.2.2:3001/api`
+Exemplo Android Emulator: `http://10.0.2.2:3000/v1`
 
-2. Rodar app:
+3. Rodar app:
 
 ```bash
 npm run start
 ```
+
+Se o Expo Go mostrar `Failed to download remote update`, tente:
+
+```bash
+npm run start:clear
+```
+
+ou:
+
+```bash
+npm run start:tunnel
+```
+
+## Troubleshooting rapido
+
+- Atualize o Expo Go para uma versao compativel com SDK 55
+- Use `npm run start:tunnel` se o celular nao estiver acessando a rede local/porta do Metro
+- Desative VPN e permita Node.js/Expo no firewall do Windows
+- Remova a sessao antiga do app no Expo Go e escaneie o QR novamente
+- Se o bundle abrir, mas login/API falhar, revise `EXPO_PUBLIC_API_URL`
 
 ## Funcionalidades entregues
 

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:3001/api';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://barberpro-api-v4kj.onrender.com/v1';
 
 export const api = axios.create({
   baseURL: API_URL,
