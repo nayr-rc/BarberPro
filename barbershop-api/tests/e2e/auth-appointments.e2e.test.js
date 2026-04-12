@@ -685,6 +685,57 @@ describe('E2E - auth and appointments', () => {
     });
   });
 
+  test('blocks repeated public booking within cooldown window when guest only repeats phone', async () => {
+    const adminAuth = await seedAndLogin({ role: 'admin' });
+    const barberAuth = await seedAndLogin({ role: 'barber', subscriptionStatus: 'active' });
+
+    const createCategoryRes = await request(app)
+      .post('/v1/service-categories')
+      .set('Authorization', `Bearer ${adminAuth.tokens.access.token}`)
+      .send({ name: 'Cooldown' })
+      .expect(httpStatus.CREATED);
+
+    const createServiceRes = await request(app)
+      .post('/v1/services')
+      .set('Authorization', `Bearer ${adminAuth.tokens.access.token}`)
+      .send({
+        title: 'Teste cooldown',
+        description: 'Servico para validar cooldown publico',
+        price: 25,
+        categoryId: createCategoryRes.body.id,
+      })
+      .expect(httpStatus.CREATED);
+
+    const firstDate = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
+    const secondDate = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
+
+    await request(app)
+      .post('/v1/appointments/public')
+      .send({
+        barberId: barberAuth.user.id,
+        serviceId: createServiceRes.body.id,
+        datetimeStart: firstDate,
+        guestName: 'Cliente Sem Email',
+        guestPhone: '71990000003',
+        email: '',
+      })
+      .expect(httpStatus.CREATED);
+
+    const secondResponse = await request(app)
+      .post('/v1/appointments/public')
+      .send({
+        barberId: barberAuth.user.id,
+        serviceId: createServiceRes.body.id,
+        datetimeStart: secondDate,
+        guestName: 'Cliente Sem Email',
+        guestPhone: '(71) 99000-0003',
+        email: '',
+      })
+      .expect(httpStatus.CONFLICT);
+
+    expect(secondResponse.body.message).toContain('240 minutos');
+  });
+
   test('blocks barber with pending subscription from appointments route', async () => {
     const barberAuth = await registerAndLogin({ role: 'barber' });
 

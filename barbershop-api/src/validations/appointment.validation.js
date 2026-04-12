@@ -1,6 +1,16 @@
 const Joi = require('joi');
 const { objectId } = require('./custom.validation');
 
+const phoneValidation = (value, helpers) => {
+  const digits = String(value || '').replace(/\D/g, '');
+
+  if (digits.length < 10 || digits.length > 11) {
+    return helpers.message('Telefone deve ter DDD e 8 ou 9 digitos');
+  }
+
+  return value;
+};
+
 const createAppointment = {
   body: Joi.object()
     .keys({
@@ -42,7 +52,7 @@ const createPublicAppointment = {
       serviceDurationMinutes: Joi.number().integer().min(15).max(240),
       datetimeStart: Joi.date().required(),
       guestName: Joi.string().required(),
-      guestPhone: Joi.string().required(),
+      guestPhone: Joi.string().required().custom(phoneValidation),
       email: Joi.string().email().allow(''),
       additionalNotes: Joi.string().allow(''),
     })

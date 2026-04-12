@@ -29,7 +29,13 @@ const appointmentService = require('../../../src/services/appointment.service');
 
 describe('appointment.service', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    prisma.$transaction.mockImplementation(async (callback) =>
+      callback({
+        appointment: prisma.appointment,
+        service: prisma.service,
+      })
+    );
   });
 
   test('createAppointment normalizes legacy payload keys', async () => {
@@ -97,12 +103,17 @@ describe('appointment.service', () => {
     const appointmentTime = new Date('2026-04-12T14:00:00.000Z').toISOString();
 
     prisma.service.findUnique.mockResolvedValue({ categoryId: 'category-1' });
-    prisma.appointment.findMany.mockResolvedValueOnce([
-      {
-        id: 'existing-user-appointment',
-        appointmentDateTime: new Date('2026-04-12T12:30:00.000Z').toISOString(),
-      },
-    ]);
+    prisma.appointment.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 'existing-user-appointment',
+          userId: 'user-1',
+          appointmentDateTime: new Date('2026-04-12T12:30:00.000Z').toISOString(),
+          contactNumber: '11999999999',
+          email: 'joao@barber.com',
+        },
+      ])
+      .mockResolvedValueOnce([]);
 
     await expect(
       appointmentService.createAppointment({
@@ -111,6 +122,39 @@ describe('appointment.service', () => {
         contactNumber: '11999999999',
         email: 'joao@barber.com',
         userId: 'user-1',
+        preferredHairdresser: 'barber-1',
+        serviceType: 'service-1',
+        appointmentDateTime: appointmentTime,
+      })
+    ).rejects.toMatchObject({
+      statusCode: httpStatus.CONFLICT,
+      message: expect.stringContaining('240 minutos'),
+    });
+
+    expect(prisma.appointment.create).not.toHaveBeenCalled();
+  });
+
+  test('createAppointment throws conflict when public guest repeats booking with same phone and no email', async () => {
+    const appointmentTime = new Date('2026-04-12T14:00:00.000Z').toISOString();
+
+    prisma.service.findUnique.mockResolvedValue({ categoryId: 'category-1' });
+    prisma.appointment.findMany.mockResolvedValueOnce([
+      {
+        id: 'existing-public-appointment',
+        userId: 'other-generated-user',
+        appointmentDateTime: new Date('2026-04-12T12:30:00.000Z').toISOString(),
+        contactNumber: '(71) 99000-0002',
+        email: 'guest-old@barberpro.local',
+      },
+    ]);
+
+    await expect(
+      appointmentService.createAppointment({
+        firstName: 'Publico',
+        lastName: 'Teste',
+        contactNumber: '71 99000-0002',
+        email: 'guest-new@barberpro.local',
+        userId: 'new-generated-user',
         preferredHairdresser: 'barber-1',
         serviceType: 'service-1',
         appointmentDateTime: appointmentTime,

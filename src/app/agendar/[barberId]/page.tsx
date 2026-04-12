@@ -1,14 +1,15 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
-import { addMinutes, format, isAfter, isBefore, parseISO, startOfDay } from 'date-fns';
+import { useEffect, useState } from 'react';
+import { addMinutes, format, parseISO, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertCircle, Calendar as CalendarIcon, CheckCircle2, ChevronLeft, Clock, Scissors, X } from 'lucide-react';
 import Link from 'next/link';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import '@/components/client/CalendarStyles.css';
+import { formatBrazilPhone, isValidBrazilPhone, isValidEmail, normalizeEmail, normalizePhoneDigits } from '@/lib/contact';
 
 type TimeSlot = {
   start: string;
@@ -100,7 +101,6 @@ export default function PaginaAgendar() {
   const [barberPhone, setBarberPhone] = useState('');
 
   const parsedBarberId = String(barberId || '');
-  const selectedDurationMinutes = selectedService?.durationMinutes || 30;
   const isServiceIdUuid = selectedService ? UUID_REGEX.test(selectedService.id) : false;
 
   useEffect(() => {
@@ -249,6 +249,17 @@ export default function PaginaAgendar() {
       return;
     }
 
+    if (!isValidBrazilPhone(customerPhone)) {
+      setFeedback({ type: 'erro', text: 'Informe um WhatsApp valido com DDD.' });
+      return;
+    }
+
+    const normalizedEmail = normalizeEmail(customerEmail);
+    if (normalizedEmail && !isValidEmail(normalizedEmail)) {
+      setFeedback({ type: 'erro', text: 'Informe um e-mail valido para confirmacao.' });
+      return;
+    }
+
     setIsSubmitting(true);
     let bookingCreated = false;
 
@@ -264,8 +275,8 @@ export default function PaginaAgendar() {
           serviceDurationMinutes: selectedService.durationMinutes,
           datetimeStart: selectedSlot.start,
           guestName: customerName,
-          guestPhone: customerPhone,
-          email: customerEmail,
+          guestPhone: normalizePhoneDigits(customerPhone),
+          email: normalizedEmail,
         }),
       });
 
@@ -541,21 +552,10 @@ export default function PaginaAgendar() {
                     required
                     type="tel"
                     value={customerPhone}
+                    onChange={(event) => setCustomerPhone(formatBrazilPhone(event.target.value))}
+                    placeholder="(71) 99999-9999"
+                    inputMode="numeric"
                     maxLength={15}
-                    onChange={(event) => {
-                      let value = event.target.value.replace(/\D/g, ''); // Remove non-numeric
-                      if (value.length > 11) value = value.slice(0, 11); // Limit length
-                      
-                      // Apply mask (XX) XXXXX-XXXX
-                      if (value.length > 2) {
-                        value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
-                      }
-                      if (value.length > 10) {
-                        value = `${value.slice(0, 10)}-${value.slice(10)}`;
-                      }
-                      setCustomerPhone(value);
-                    }}
-                    placeholder="(11) 99999-9999"
                     className="w-full bg-barber-black border border-white/10 focus:border-barber-gold rounded-2xl px-8 py-5 outline-none transition-all text-lg placeholder:text-gray-800 shadow-2xl focus:ring-2 focus:ring-barber-gold/10"
                   />
                 </div>
@@ -568,8 +568,11 @@ export default function PaginaAgendar() {
                 <input
                   type="email"
                   value={customerEmail}
-                  onChange={(event) => setCustomerEmail(event.target.value)}
+                  onChange={(event) => setCustomerEmail(normalizeEmail(event.target.value))}
                   placeholder="Ex: seuemail@exemplo.com"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
                   className="w-full bg-barber-black border border-white/10 focus:border-barber-gold rounded-2xl px-8 py-5 outline-none transition-all text-lg placeholder:text-gray-800 shadow-2xl focus:ring-2 focus:ring-barber-gold/10"
                 />
               </div>

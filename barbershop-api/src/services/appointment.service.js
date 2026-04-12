@@ -5,6 +5,9 @@ const prisma = require('../client');
 
 const USER_APPOINTMENT_COOLDOWN_MINUTES = 240;
 
+const normalizeContactNumber = (value) => String(value || '').replace(/\D/g, '');
+const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+
 const splitName = (name) => {
   if (!name || typeof name !== 'string') {
     return { firstName: undefined, lastName: undefined };
@@ -164,18 +167,23 @@ const ensureSlotIsAvailable = async ({ preferredHairdresserId, appointmentDateTi
   }
 };
 
-const ensureUserAppointmentCooldown = async ({ userId, appointmentDateTime }) => {
-  if (!userId || !appointmentDateTime) {
+const ensureUserAppointmentCooldown = async ({ userId, appointmentDateTime, contactNumber, email }) => {
+  if (!appointmentDateTime) {
     return;
   }
 
   const requestedStart = new Date(appointmentDateTime);
   const minAllowedStart = addMinutes(requestedStart, -USER_APPOINTMENT_COOLDOWN_MINUTES);
   const maxAllowedStart = addMinutes(requestedStart, USER_APPOINTMENT_COOLDOWN_MINUTES);
+  const normalizedContactNumber = normalizeContactNumber(contactNumber);
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!userId && !normalizedContactNumber && !normalizedEmail) {
+    return;
+  }
 
   const nearbyAppointments = await prisma.appointment.findMany({
     where: {
-      userId,
       status: 'Upcoming',
       appointmentDateTime: {
         gte: minAllowedStart,
@@ -184,11 +192,23 @@ const ensureUserAppointmentCooldown = async ({ userId, appointmentDateTime }) =>
     },
     select: {
       id: true,
+      userId: true,
       appointmentDateTime: true,
+      contactNumber: true,
+      email: true,
     },
   });
 
-  if (nearbyAppointments.length > 0) {
+  const conflictingAppointment = nearbyAppointments.find((appointment) => {
+    const sameUserId = Boolean(userId) && appointment.userId === userId;
+    const sameContactNumber =
+      Boolean(normalizedContactNumber) && normalizeContactNumber(appointment.contactNumber) === normalizedContactNumber;
+    const sameEmail = Boolean(normalizedEmail) && normalizeEmail(appointment.email) === normalizedEmail;
+
+    return sameUserId || sameContactNumber || sameEmail;
+  });
+
+  if (conflictingAppointment) {
     throw new ApiError(
       httpStatus.CONFLICT,
       `Voce precisa aguardar pelo menos ${USER_APPOINTMENT_COOLDOWN_MINUTES} minutos entre um agendamento e outro.`

@@ -3,6 +3,7 @@
 import { useBookingStore } from '@/hooks/useBookingStore';
 import { useState, useEffect } from 'react';
 import apiClient from "@/lib/api";
+import { formatBrazilPhone, isValidBrazilPhone, normalizePhoneDigits } from '@/lib/contact';
 
 interface Drink {
     id: string;
@@ -94,6 +95,11 @@ export default function BookingSection() {
     const handleBookingSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (!isValidBrazilPhone(phone)) {
+            alert('Informe um WhatsApp valido com DDD.');
+            return;
+        }
+
         // Simulação de valores p/ backend já que não temos IDs reais de serviço e barbeiro na UI
         const dummyBarberId = "barber_123";
         const dummyServiceId = "service_123";
@@ -104,7 +110,7 @@ export default function BookingSection() {
         try {
             const res = await apiClient.post('/appointments', {
                 guestName: name,
-                guestPhone: phone,
+                guestPhone: normalizePhoneDigits(phone),
                 barberId: dummyBarberId,
                 serviceId: dummyServiceId,
                 datetimeStart,
@@ -156,7 +162,7 @@ export default function BookingSection() {
                             </div>
                             <div className="group">
                                 <label className="text-xs text-barber-gold uppercase tracking-[0.2em] mb-2 block font-bold">WhatsApp</label>
-                                <input required value={phone} onChange={e => setPhone(e.target.value)} type="tel" className="w-full bg-transparent border-b border-white/10 text-white pb-2 focus:outline-none focus:border-barber-gold transition-colors placeholder-gray-700 font-light" placeholder="(11) 99999-9999" />
+                                <input required value={phone} onChange={e => setPhone(formatBrazilPhone(e.target.value))} type="tel" inputMode="numeric" maxLength={15} className="w-full bg-transparent border-b border-white/10 text-white pb-2 focus:outline-none focus:border-barber-gold transition-colors placeholder-gray-700 font-light" placeholder="(11) 99999-9999" />
                             </div>
                         </div>
 
