@@ -541,8 +541,21 @@ export default function PaginaAgendar() {
                     required
                     type="tel"
                     value={customerPhone}
-                    onChange={(event) => setCustomerPhone(event.target.value)}
-                    placeholder="DDD + Número"
+                    maxLength={15}
+                    onChange={(event) => {
+                      let value = event.target.value.replace(/\D/g, ''); // Remove non-numeric
+                      if (value.length > 11) value = value.slice(0, 11); // Limit length
+                      
+                      // Apply mask (XX) XXXXX-XXXX
+                      if (value.length > 2) {
+                        value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+                      }
+                      if (value.length > 10) {
+                        value = `${value.slice(0, 10)}-${value.slice(10)}`;
+                      }
+                      setCustomerPhone(value);
+                    }}
+                    placeholder="(11) 99999-9999"
                     className="w-full bg-barber-black border border-white/10 focus:border-barber-gold rounded-2xl px-8 py-5 outline-none transition-all text-lg placeholder:text-gray-800 shadow-2xl focus:ring-2 focus:ring-barber-gold/10"
                   />
                 </div>
