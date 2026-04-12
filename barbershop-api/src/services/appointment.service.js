@@ -120,10 +120,10 @@ const assertRequiredCreateFields = (appointmentBody) => {
   }
 };
 
-const ensureSlotIsAvailable = async ({ preferredHairdresserId, appointmentDateTime, serviceTypeId }) => {
+const ensureSlotIsAvailable = async ({ preferredHairdresserId, appointmentDateTime, serviceTypeId }, tx = prisma) => {
   const requestedStart = new Date(appointmentDateTime);
 
-  const existingAppointments = await prisma.appointment.findMany({
+  const existingAppointments = await tx.appointment.findMany({
     where: {
       preferredHairdresserId,
       appointmentDateTime: {
@@ -139,7 +139,7 @@ const ensureSlotIsAvailable = async ({ preferredHairdresserId, appointmentDateTi
     },
   });
 
-  const requestedService = await prisma.service.findUnique({
+  const requestedService = await tx.service.findUnique({
     where: { id: String(serviceTypeId || '') },
     select: { durationMinutes: true },
   });
@@ -170,18 +170,22 @@ const ensureSlotIsAvailable = async ({ preferredHairdresserId, appointmentDateTi
 const createAppointment = async (appointmentBody) => {
   const normalizedPayload = await normalizeAppointmentPayload(appointmentBody);
   assertRequiredCreateFields(normalizedPayload);
-  await ensureSlotIsAvailable(normalizedPayload);
   const { drinks: drinkIds, ...data } = normalizedPayload;
 
-  return prisma.appointment.create({
-    data: {
-      ...data,
-      drinks: drinkIds
-        ? {
-          connect: drinkIds.map((id) => ({ id })),
-        }
-        : undefined,
-    },
+  // Execute inside an atomic transaction to prevent race conditions
+  return prisma.$transaction(async (tx) => {
+    await ensureSlotIsAvailable(normalizedPayload, tx);
+
+    return tx.appointment.create({
+      data: {
+        ...data,
+        drinks: drinkIds
+          ? {
+            connect: drinkIds.map((id) => ({ id })),
+          }
+          : undefined,
+      },
+    });
   });
 };
 

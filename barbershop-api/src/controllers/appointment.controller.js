@@ -173,6 +173,15 @@ const getAppointments = catchAsync(async (req, res) => {
     'status',
     'paymentStatus',
   ]);
+
+  if (req.user && req.user.role !== 'admin') {
+    if (req.user.role === 'barber') {
+      filter.preferredHairdresserId = req.user.id;
+    } else {
+      filter.userId = req.user.id;
+    }
+  }
+
   const options = pick(req.query, ['sortBy', 'populate', 'page', 'limit']);
 
   const result = await appointmentService.queryAppointments(filter, options);
@@ -184,10 +193,24 @@ const getAppointment = catchAsync(async (req, res) => {
   if (!appointment) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
   }
+
+  if (req.user && req.user.role !== 'admin' && appointment.userId !== req.user.id && appointment.preferredHairdresserId !== req.user.id) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para acessar este agendamento');
+  }
+
   res.send(appointment);
 });
 
 const updateAppointment = catchAsync(async (req, res) => {
+  const existingAppointment = await appointmentService.getAppointmentById(req.params.appointmentId);
+  if (!existingAppointment) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
+  }
+
+  if (req.user && req.user.role !== 'admin' && existingAppointment.userId !== req.user.id && existingAppointment.preferredHairdresserId !== req.user.id) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para alterar este agendamento');
+  }
+
   const appointment = await appointmentService.updateAppointmentById(req.params.appointmentId, req.body);
 
   const barberDetails = await userService.getUserById(appointment.preferredHairdresserId);
@@ -230,6 +253,15 @@ const updateAppointment = catchAsync(async (req, res) => {
 });
 
 const deleteAppointment = catchAsync(async (req, res) => {
+  const existingAppointment = await appointmentService.getAppointmentById(req.params.appointmentId);
+  if (!existingAppointment) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
+  }
+
+  if (req.user && req.user.role !== 'admin' && existingAppointment.userId !== req.user.id && existingAppointment.preferredHairdresserId !== req.user.id) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para deletar este agendamento');
+  }
+
   await appointmentService.deleteAppointmentById(req.params.appointmentId);
   res.status(httpStatus.NO_CONTENT).send();
 });

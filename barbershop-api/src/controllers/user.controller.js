@@ -53,6 +53,9 @@ const changePassword = catchAsync(async (req, res) => {
 });
 
 const updateUser = catchAsync(async (req, res) => {
+  if (req.body.role && (!req.user || req.user.role !== 'admin')) {
+    delete req.body.role; // Prevent privilege escalation for non-admin users
+  }
   const user = await userService.updateUserById(req.params.userId, req.body);
   res.send(user);
 });
