@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, RefreshCw, Calendar as CalendarIcon, Filter, ExternalLink, Plus, Trash2, Clock, Scissors as ScissorsIcon, Phone, X } from "lucide-react";
+import { ArrowLeft, RefreshCw, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter, ExternalLink, Plus, Trash2, Clock, Scissors as ScissorsIcon, Phone, X } from "lucide-react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useAgendaStore, Agendamento } from "@/stores/useAgendaStore";
 import Button from "@/components/ui/Button";
@@ -22,6 +22,18 @@ export default function MinhaAgenda() {
     const [filterStatus, setFilterStatus] = useState('Todos');
     const [appliedDate, setAppliedDate] = useState(hoje);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+    const handlePrevDay = () => {
+        const d = new Date(filterDate + 'T12:00:00'); // mid-day safe string
+        d.setDate(d.getDate() - 1);
+        setFilterDate(d.toISOString().split('T')[0]);
+    };
+
+    const handleNextDay = () => {
+        const d = new Date(filterDate + 'T12:00:00'); // mid-day safe string
+        d.setDate(d.getDate() + 1);
+        setFilterDate(d.toISOString().split('T')[0]);
+    };
 
     useEffect(() => {
         if (hasHydrated && !isAuthenticated) {
@@ -139,12 +151,20 @@ export default function MinhaAgenda() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black tracking-widest text-gray-500 uppercase ml-1">Data</label>
-                                <input
-                                    type="date"
-                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm focus:border-emerald-500/50 outline-none transition-all"
-                                    value={filterDate}
-                                    onChange={(e) => setFilterDate(e.target.value)}
-                                />
+                                <div className="flex items-center gap-2">
+                                    <button onClick={handlePrevDay} className="p-3.5 bg-black/40 border border-white/10 rounded-2xl hover:border-emerald-500/50 transition-all text-gray-400 hover:text-emerald-400">
+                                        <ChevronLeft size={18} />
+                                    </button>
+                                    <input
+                                        type="date"
+                                        className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-2xl px-3 sm:px-5 py-3.5 text-sm focus:border-emerald-500/50 outline-none transition-all"
+                                        value={filterDate}
+                                        onChange={(e) => setFilterDate(e.target.value)}
+                                    />
+                                    <button onClick={handleNextDay} className="p-3.5 bg-black/40 border border-white/10 rounded-2xl hover:border-emerald-500/50 transition-all text-gray-400 hover:text-emerald-400">
+                                        <ChevronRight size={18} />
+                                    </button>
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black tracking-widest text-gray-500 uppercase ml-1">Status</label>
