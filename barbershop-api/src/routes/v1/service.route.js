@@ -3,19 +3,20 @@ const validate = require('../../middlewares/validate');
 const serviceController = require('../../controllers/service.controller');
 const serviceValidation = require('../../validations/service.validation');
 const auth = require('../../middlewares/auth');
+const checkSubscription = require('../../middlewares/checkSubscription');
 
 const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(serviceValidation.createService), serviceController.createService)
+  .post(auth(), checkSubscription, validate(serviceValidation.createService), serviceController.createService)
   .get(validate(serviceValidation.getServices), serviceController.getServices);
 
 router
   .route('/:serviceId')
   .get(validate(serviceValidation.getService), serviceController.getService)
-  .patch(auth(), validate(serviceValidation.updateService), serviceController.updateService)
-  .delete(auth(), validate(serviceValidation.deleteService), serviceController.deleteService);
+  .patch(auth(), checkSubscription, validate(serviceValidation.updateService), serviceController.updateService)
+  .delete(auth(), checkSubscription, validate(serviceValidation.deleteService), serviceController.deleteService);
 
 module.exports = router;
 
