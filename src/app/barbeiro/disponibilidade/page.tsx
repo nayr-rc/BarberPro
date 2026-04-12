@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, Save, Clock, Calendar, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
+import { ChevronLeft, Save, CheckCircle2, AlertCircle, Coffee } from "lucide-react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
@@ -10,11 +10,14 @@ import Input from "@/components/ui/Input";
 import apiClient from "@/lib/api";
 
 interface DayConfig {
-    dayId: number; // 0-6 (Sun-Sat)
+    dayId: number;
     dayLabel: string;
     isOpen: boolean;
     startTime: string;
     endTime: string;
+    breakEnabled: boolean;
+    breakStart: string;
+    breakEnd: string;
 }
 
 const DAYS_NAMES = [
@@ -25,9 +28,12 @@ const DAYS_NAMES = [
 const DEFAULT_CONFIG: DayConfig[] = DAYS_NAMES.map((name, index) => ({
     dayId: index,
     dayLabel: name,
-    isOpen: index !== 0 && index !== 6, // Mon-Fri open by default
+    isOpen: index !== 0 && index !== 6,
     startTime: "09:00",
-    endTime: "19:00"
+    endTime: "19:00",
+    breakEnabled: false,
+    breakStart: "12:00",
+    breakEnd: "13:00",
 }));
 
 export default function DisponibilidadeBarbeiro() {
@@ -44,9 +50,7 @@ export default function DisponibilidadeBarbeiro() {
             return;
         }
 
-        if (!hasHydrated || !isAuthenticated || !user?.id) {
-            return;
-        }
+        if (!hasHydrated || !isAuthenticated || !user?.id) return;
 
         const fetchSchedule = async () => {
             setIsLoadingSchedule(true);
@@ -60,7 +64,10 @@ export default function DisponibilidadeBarbeiro() {
                             dayLabel: name,
                             isOpen: config ? config.isOpen : false,
                             startTime: config ? config.startTime : "09:00",
-                            endTime: config ? config.endTime : "19:00"
+                            endTime: config ? config.endTime : "19:00",
+                            breakEnabled: config ? Boolean(config.breakEnabled) : false,
+                            breakStart: config?.breakStart || "12:00",
+                            breakEnd: config?.breakEnd || "13:00",
                         };
                     });
                     setSchedule(fullSchedule);
@@ -81,7 +88,13 @@ export default function DisponibilidadeBarbeiro() {
         ));
     };
 
-    const handleTimeChange = (id: number, field: 'startTime' | 'endTime', value: string) => {
+    const handleBreakToggle = (id: number) => {
+        setSchedule(prev => prev.map(day =>
+            day.dayId === id ? { ...day, breakEnabled: !day.breakEnabled } : day
+        ));
+    };
+
+    const handleTimeChange = (id: number, field: keyof DayConfig, value: string) => {
         setSchedule(prev => prev.map(day =>
             day.dayId === id ? { ...day, [field]: value } : day
         ));
@@ -93,9 +106,17 @@ export default function DisponibilidadeBarbeiro() {
             return;
         }
 
-        const invalidDay = schedule.find((day) => day.isOpen && day.startTime >= day.endTime);
+        const invalidDay = schedule.find(day => day.isOpen && day.startTime >= day.endTime);
         if (invalidDay) {
             alert(`No dia ${invalidDay.dayLabel}, o horário inicial deve ser menor que o final.`);
+            return;
+        }
+
+        const invalidBreak = schedule.find(day =>
+            day.isOpen && day.breakEnabled && day.breakStart >= day.breakEnd
+        );
+        if (invalidBreak) {
+            alert(`No dia ${invalidBreak.dayLabel}, o início do intervalo deve ser menor que o fim.`);
             return;
         }
 
@@ -103,8 +124,10 @@ export default function DisponibilidadeBarbeiro() {
         try {
             await apiClient.post('/availability', {
                 barberId: user?.id,
-                workingHours: schedule.map(({ dayId, isOpen, startTime, endTime }) => ({
-                    dayId, isOpen, startTime, endTime
+                workingHours: schedule.map(({ dayId, isOpen, startTime, endTime, breakEnabled, breakStart, breakEnd }) => ({
+                    dayId, isOpen, startTime, endTime, breakEnabled,
+                    breakStart: breakEnabled ? breakStart : null,
+                    breakEnd: breakEnabled ? breakEnd : null,
                 }))
             });
             setShowSuccess(true);
@@ -161,7 +184,7 @@ export default function DisponibilidadeBarbeiro() {
                     <div className="space-y-1">
                         <h4 className="font-bold uppercase tracking-widest text-sm text-amber-500">Gestão de Agenda</h4>
                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed">
-                            Configure os dias e horários em que você está aberto para novos cortes.
+                            Configure os dias, horários e intervalos de descanso.
                         </p>
                     </div>
                 </Card>
@@ -170,43 +193,92 @@ export default function DisponibilidadeBarbeiro() {
                     {schedule.map((day) => (
                         <Card
                             key={day.dayId}
-                            className={`p-8 flex flex-col md:flex-row items-center gap-8 transition-all border-white/5 bg-white/[0.02] ${day.isOpen ? 'opacity-100 hover:border-emerald-500/30' : 'opacity-40 grayscale'}`}
+                            className={`p-8 flex flex-col gap-6 transition-all border-white/5 bg-white/[0.02] ${day.isOpen ? 'opacity-100 hover:border-emerald-500/30' : 'opacity-40 grayscale'}`}
                         >
-                            <div className="flex items-center gap-6 min-w-[200px] w-full md:w-auto">
-                                <button
-                                    onClick={() => handleToggle(day.dayId)}
-                                    className={`relative w-16 h-8 rounded-full transition-all flex items-center px-1 shadow-inner ${day.isOpen ? 'bg-emerald-600' : 'bg-white/10'}`}
-                                >
-                                    <div className={`w-6 h-6 bg-white rounded-full shadow-lg transition-transform ${day.isOpen ? 'translate-x-8' : 'translate-x-0'}`} />
-                                </button>
-                                <div className="space-y-0.5">
-                                    <h3 className="font-bold text-lg uppercase tracking-tight">{day.dayLabel}</h3>
-                                    <p className={`text-[10px] font-black uppercase tracking-widest ${day.isOpen ? 'text-emerald-400' : 'text-gray-600'}`}>
-                                        {day.isOpen ? 'Trabalhando' : 'Folga'}
-                                    </p>
+                            {/* Row 1: toggle + nome + horário de trabalho */}
+                            <div className="flex flex-col md:flex-row items-start md:items-center gap-8">
+                                <div className="flex items-center gap-6 min-w-[200px]">
+                                    <button
+                                        onClick={() => handleToggle(day.dayId)}
+                                        className={`relative w-16 h-8 rounded-full transition-all flex items-center px-1 shadow-inner ${day.isOpen ? 'bg-emerald-600' : 'bg-white/10'}`}
+                                    >
+                                        <div className={`w-6 h-6 bg-white rounded-full shadow-lg transition-transform ${day.isOpen ? 'translate-x-8' : 'translate-x-0'}`} />
+                                    </button>
+                                    <div className="space-y-0.5">
+                                        <h3 className="font-bold text-lg uppercase tracking-tight">{day.dayLabel}</h3>
+                                        <p className={`text-[10px] font-black uppercase tracking-widest ${day.isOpen ? 'text-emerald-400' : 'text-gray-600'}`}>
+                                            {day.isOpen ? 'Trabalhando' : 'Folga'}
+                                        </p>
+                                    </div>
                                 </div>
+
+                                {day.isOpen && (
+                                    <div className="flex flex-1 items-center justify-center md:justify-end gap-6 animate-fade-in w-full md:w-auto">
+                                        <div className="space-y-2 flex-1 md:flex-none">
+                                            <label className="text-[9px] text-gray-700 font-black uppercase tracking-[0.2em] ml-1">Início</label>
+                                            <Input
+                                                type="time"
+                                                value={day.startTime}
+                                                onChange={(e) => handleTimeChange(day.dayId, 'startTime', e.target.value)}
+                                                className="w-full md:w-[140px] appearance-none"
+                                            />
+                                        </div>
+                                        <div className="w-4 h-[2px] bg-white/5 self-end mb-6 hidden md:block" />
+                                        <div className="space-y-2 flex-1 md:flex-none">
+                                            <label className="text-[9px] text-gray-700 font-black uppercase tracking-[0.2em] ml-1">Encerramento</label>
+                                            <Input
+                                                type="time"
+                                                value={day.endTime}
+                                                onChange={(e) => handleTimeChange(day.dayId, 'endTime', e.target.value)}
+                                                className="w-full md:w-[140px] appearance-none"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
+                            {/* Row 2: break time */}
                             {day.isOpen && (
-                                <div className="flex flex-1 items-center justify-center md:justify-end gap-6 animate-fade-in w-full md:w-auto">
-                                    <div className="space-y-2 flex-1 md:flex-none">
-                                        <label className="text-[9px] text-gray-700 font-black uppercase tracking-[0.2em] ml-1">Início</label>
-                                        <Input
-                                            type="time"
-                                            value={day.startTime}
-                                            onChange={(e) => handleTimeChange(day.dayId, 'startTime', e.target.value)}
-                                            className="w-full md:w-[140px] appearance-none"
-                                        />
-                                    </div>
-                                    <div className="w-4 h-[2px] bg-white/5 self-end mb-6 hidden md:block" />
-                                    <div className="space-y-2 flex-1 md:flex-none">
-                                        <label className="text-[9px] text-gray-700 font-black uppercase tracking-[0.2em] ml-1">Encerramento</label>
-                                        <Input
-                                            type="time"
-                                            value={day.endTime}
-                                            onChange={(e) => handleTimeChange(day.dayId, 'endTime', e.target.value)}
-                                            className="w-full md:w-[140px] appearance-none"
-                                        />
+                                <div className="border-t border-white/5 pt-5 animate-fade-in">
+                                    <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                                        <div className="flex items-center gap-4 min-w-[200px]">
+                                            <button
+                                                onClick={() => handleBreakToggle(day.dayId)}
+                                                className={`relative w-12 h-6 rounded-full transition-all flex items-center px-0.5 shadow-inner ${day.breakEnabled ? 'bg-orange-500' : 'bg-white/10'}`}
+                                            >
+                                                <div className={`w-5 h-5 bg-white rounded-full shadow-lg transition-transform ${day.breakEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <Coffee size={14} className={day.breakEnabled ? 'text-orange-400' : 'text-gray-600'} />
+                                                <span className={`text-[10px] font-black uppercase tracking-widest ${day.breakEnabled ? 'text-orange-400' : 'text-gray-600'}`}>
+                                                    Intervalo de Descanso
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {day.breakEnabled && (
+                                            <div className="flex flex-1 items-center justify-center md:justify-end gap-6 animate-fade-in w-full md:w-auto">
+                                                <div className="space-y-2 flex-1 md:flex-none">
+                                                    <label className="text-[9px] text-orange-700 font-black uppercase tracking-[0.2em] ml-1">Início do intervalo</label>
+                                                    <Input
+                                                        type="time"
+                                                        value={day.breakStart}
+                                                        onChange={(e) => handleTimeChange(day.dayId, 'breakStart', e.target.value)}
+                                                        className="w-full md:w-[140px] appearance-none"
+                                                    />
+                                                </div>
+                                                <div className="w-4 h-[2px] bg-white/5 self-end mb-6 hidden md:block" />
+                                                <div className="space-y-2 flex-1 md:flex-none">
+                                                    <label className="text-[9px] text-orange-700 font-black uppercase tracking-[0.2em] ml-1">Fim do intervalo</label>
+                                                    <Input
+                                                        type="time"
+                                                        value={day.breakEnd}
+                                                        onChange={(e) => handleTimeChange(day.dayId, 'breakEnd', e.target.value)}
+                                                        className="w-full md:w-[140px] appearance-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}

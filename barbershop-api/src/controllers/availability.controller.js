@@ -93,6 +93,16 @@ const getAvailability = catchAsync(async (req, res) => {
     },
   });
 
+  // Build break window if configured
+  let breakStart = null;
+  let breakEnd = null;
+  if (config && config.breakEnabled && config.breakStart && config.breakEnd) {
+    const [bStartH, bStartM] = config.breakStart.split(':').map(Number);
+    const [bEndH, bEndM] = config.breakEnd.split(':').map(Number);
+    breakStart = addMinutes(brMidnight, bStartH * 60 + bStartM);
+    breakEnd = addMinutes(brMidnight, bEndH * 60 + bEndM);
+  }
+
   const availableSlots = [];
   const now = new Date();
 
@@ -116,7 +126,10 @@ const getAvailability = catchAsync(async (req, res) => {
 
     const exceedsWorkingHours = isAfter(slotEnd, workEnd);
 
-    if (!isPast && !isTaken && !exceedsWorkingHours) {
+    // Skip slots that overlap with the break window
+    const isInBreak = breakStart && breakEnd && slotStart < breakEnd && slotEnd > breakStart;
+
+    if (!isPast && !isTaken && !exceedsWorkingHours && !isInBreak) {
       availableSlots.push({
         start: currentSlot.toISOString(),
         end: slotEnd.toISOString(),
@@ -156,6 +169,9 @@ const updateAvailability = catchAsync(async (req, res) => {
     const isOpen = Boolean(dayConfig?.isOpen);
     const startTime = String(dayConfig?.startTime || '09:00');
     const endTime = String(dayConfig?.endTime || '19:00');
+    const breakEnabled = Boolean(dayConfig?.breakEnabled);
+    const breakStart = dayConfig?.breakStart ? String(dayConfig.breakStart) : null;
+    const breakEnd = dayConfig?.breakEnd ? String(dayConfig.breakEnd) : null;
 
     if (!Number.isInteger(dayId) || dayId < 0 || dayId > 6) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'dayId inválido em workingHours');
@@ -174,11 +190,26 @@ const updateAvailability = catchAsync(async (req, res) => {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Hora inicial deve ser menor que hora final nos dias abertos');
     }
 
+    if (breakEnabled && breakStart && breakEnd) {
+      if (!timeRegex.test(breakStart) || !timeRegex.test(breakEnd)) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Horários de intervalo devem estar no formato HH:mm');
+      }
+      if (breakStart >= breakEnd) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Início do intervalo deve ser menor que o fim');
+      }
+      if (breakStart <= startTime || breakEnd >= endTime) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Intervalo deve estar dentro do horário de trabalho');
+      }
+    }
+
     return {
       dayId,
       isOpen,
       startTime,
       endTime,
+      breakEnabled,
+      breakStart: breakEnabled ? breakStart : null,
+      breakEnd: breakEnabled ? breakEnd : null,
     };
   });
 
