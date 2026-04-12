@@ -7,6 +7,8 @@ const { reviewService } = require('../services');
 const createReview = catchAsync(async (req, res) => {
   const review = await reviewService.createReview({
     ...req.body,
+    // Fix: Never trust frontend for identity, always use token user ID unless admin
+    userId: req.user.role === 'admin' ? req.body.userId || req.user.id : req.user.id,
     serviceTypeId: req.body.serviceTypeId || req.body.serviceType,
   });
   res.status(httpStatus.CREATED).send(review);
@@ -39,11 +41,29 @@ const getReview = catchAsync(async (req, res) => {
 });
 
 const updateReview = catchAsync(async (req, res) => {
+  const existingReview = await reviewService.getReviewById(req.params.reviewId);
+  if (!existingReview) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Review not found');
+  }
+
+  if (req.user && req.user.role !== 'admin' && existingReview.userId !== req.user.id) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para alterar esta avaliação');
+  }
+
   const review = await reviewService.updateReviewById(req.params.reviewId, req.body);
   res.status(httpStatus.OK).send(review);
 });
 
 const deleteReview = catchAsync(async (req, res) => {
+  const existingReview = await reviewService.getReviewById(req.params.reviewId);
+  if (!existingReview) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Review not found');
+  }
+
+  if (req.user && req.user.role !== 'admin' && existingReview.userId !== req.user.id) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para deletar esta avaliação');
+  }
+
   await reviewService.deleteReviewById(req.params.reviewId);
   res.status(httpStatus.NO_CONTENT).send();
 });

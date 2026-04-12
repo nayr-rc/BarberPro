@@ -69,12 +69,13 @@ const getGuestIdentity = async ({ guestName, guestPhone, email }) => {
 };
 
 const createAppointment = catchAsync(async (req, res) => {
+  // NUNCA confie no frontend para campos de identidade, use sempre do token (exceto admin)
   const userPayload = {
-    userId: req.body.userId || req.user.id,
-    email: req.body.email || req.user.email,
-    firstName: req.body.firstName || req.user.firstName,
-    lastName: req.body.lastName || req.user.lastName,
-    contactNumber: req.body.contactNumber || req.user.contactNumber,
+    userId: req.user.role === 'admin' ? req.body.userId || req.user.id : req.user.id,
+    email: req.user.role === 'admin' ? req.body.email || req.user.email : req.user.email,
+    firstName: req.user.role === 'admin' ? req.body.firstName || req.user.firstName : req.user.firstName,
+    lastName: req.user.role === 'admin' ? req.body.lastName || req.user.lastName : req.user.lastName,
+    contactNumber: req.user.role === 'admin' ? req.body.contactNumber || req.user.contactNumber : req.user.contactNumber,
   };
 
   const appointment = await appointmentService.createAppointment(removeUndefined({ ...req.body, ...userPayload }));
