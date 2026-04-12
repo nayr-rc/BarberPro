@@ -43,9 +43,22 @@ const getAvailability = catchAsync(async (req, res) => {
   const [startH, startM] = (config && config.startTime ? config.startTime : '09:00').split(':').map(Number);
   const [endH, endM] = (config && config.endTime ? config.endTime : '19:00').split(':').map(Number);
 
-  let currentSlot = startOfDay(selectedDate);
-  currentSlot = addMinutes(currentSlot, startH * 60 + startM);
-  const workEnd = addMinutes(startOfDay(selectedDate), endH * 60 + endM);
+  // Use Brazil midnight (America/Sao_Paulo = UTC-3) as the base for slot calculation.
+  // Without this, startOfDay() would return UTC midnight, shifting all slots by +3h.
+  const brMidnight = (() => {
+    const d = new Date(selectedDate);
+    // Build "YYYY-MM-DDT00:00:00" in Sao Paulo time, then parse as UTC offset
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(d);
+    const get = (type) => parts.find((p) => p.type === type)?.value || '00';
+    // e.g. "2026-04-12T00:00:00-03:00"
+    return new Date(`${get('year')}-${get('month')}-${get('day')}T00:00:00-03:00`);
+  })();
+
+  let currentSlot = addMinutes(brMidnight, startH * 60 + startM);
+  const workEnd = addMinutes(brMidnight, endH * 60 + endM);
 
   let selectedServiceDuration = Number(serviceDurationMinutes) || 30;
   const isServiceIdUuid =
