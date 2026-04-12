@@ -63,7 +63,7 @@ export default function Dashboard() {
                         {user?.name?.[0]?.toUpperCase() || "R"}
                     </div>
                     <div className="space-y-0.5">
-                        <h1 className="text-2xl font-bold uppercase tracking-tight">Olá, <span className="text-emerald-400">{user?.name}</span></h1>
+                        <h1 className="text-2xl font-bold uppercase tracking-tight">Olá, <span className="text-emerald-400">{user?.name ? (typeof user.name === 'string' ? user.name.split(' ')[0] : 'Barbeiro') : 'Barbeiro'}</span></h1>
                         <p className="text-[10px] uppercase font-black tracking-[0.2em] text-gray-500">Barbeiro Especialista</p>
                     </div>
                 </div>
