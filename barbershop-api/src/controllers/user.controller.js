@@ -37,6 +37,11 @@ const changePassword = catchAsync(async (req, res) => {
   const { userId } = req.params;
   const { currentPassword, newPassword } = req.body;
 
+  // Security: only the user themselves can change their own password
+  if (req.user && req.user.role !== 'admin' && req.user.id !== userId) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para alterar a senha deste usuário');
+  }
+
   const user = await userService.getUserById(userId);
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
@@ -53,6 +58,10 @@ const changePassword = catchAsync(async (req, res) => {
 });
 
 const updateUser = catchAsync(async (req, res) => {
+  if (req.user && req.user.role !== 'admin' && req.user.id !== req.params.userId) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para atualizar este perfil');
+  }
+
   if (req.body.role && (!req.user || req.user.role !== 'admin')) {
     delete req.body.role; // Prevent privilege escalation for non-admin users
   }
@@ -61,6 +70,10 @@ const updateUser = catchAsync(async (req, res) => {
 });
 
 const deleteUser = catchAsync(async (req, res) => {
+  if (req.user && req.user.role !== 'admin' && req.user.id !== req.params.userId) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para deletar este perfil');
+  }
+
   await userService.deleteUserById(req.params.userId);
   res.status(httpStatus.NO_CONTENT).send();
 });

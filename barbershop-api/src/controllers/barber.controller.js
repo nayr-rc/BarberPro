@@ -6,6 +6,10 @@ const assignBarber = catchAsync(async (req, res) => {
   const { userId } = req.params;
   const barberData = req.body;
 
+  if (req.user && req.user.role !== 'admin' && req.user.id !== userId) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para alterar o cargo deste usuário');
+  }
+
   const updatedUser = await userService.updateUserById(userId, {
     ...barberData,
     role: 'barber',
@@ -19,6 +23,10 @@ const updateBarber = catchAsync(async (req, res) => {
   const { userId } = req.params;
   const barberData = req.body;
 
+  if (req.user && req.user.role !== 'admin' && req.user.id !== userId) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para atualizar este barbeiro');
+  }
+
   const updatedUser = await userService.updateUserById(userId, barberData);
 
   res.status(httpStatus.OK).send(updatedUser);
@@ -26,6 +34,10 @@ const updateBarber = catchAsync(async (req, res) => {
 
 const unassignBarber = catchAsync(async (req, res) => {
   const { userId } = req.params;
+
+  if (req.user && req.user.role !== 'admin' && req.user.id !== userId) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para alterar o cargo deste usuário');
+  }
 
   const updatedUser = await userService.updateUserById(userId, {
     role: 'user',
