@@ -402,6 +402,13 @@ jest.mock('../../src/client', () => {
     },
   };
 
+  prisma.$transaction = jest.fn(async (callback) =>
+    callback({
+      appointment: prisma.appointment,
+      service: prisma.service,
+    })
+  );
+
   return prisma;
 });
 

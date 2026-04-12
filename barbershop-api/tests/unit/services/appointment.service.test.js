@@ -1,17 +1,28 @@
 const httpStatus = require('http-status');
 
-jest.mock('../../../src/client', () => ({
-  appointment: {
-    create: jest.fn(),
-    findMany: jest.fn(),
-    count: jest.fn(),
-    findUnique: jest.fn(),
-    update: jest.fn(),
-  },
-  service: {
-    findUnique: jest.fn(),
-  },
-}));
+jest.mock('../../../src/client', () => {
+  const client = {
+    appointment: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    service: {
+      findUnique: jest.fn(),
+    },
+  };
+
+  client.$transaction = jest.fn(async (callback) =>
+    callback({
+      appointment: client.appointment,
+      service: client.service,
+    })
+  );
+
+  return client;
+});
 
 const prisma = require('../../../src/client');
 const appointmentService = require('../../../src/services/appointment.service');
