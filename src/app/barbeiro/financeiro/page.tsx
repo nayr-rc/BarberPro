@@ -87,19 +87,6 @@ export default function BarbeiroFinanceiro() {
 
                 {/* Grid de Detalhes Financeiros */}
                 <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card className="p-8 border-amber-500/10 bg-amber-500/5 group">
-                        <div className="flex items-center gap-4 mb-8">
-                            <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500">
-                                <Wallet size={24} />
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Saldo em Carteira</p>
-                                <p className="text-2xl font-black">R$ 0,00</p>
-                            </div>
-                        </div>
-                        <Button variant="outline" className="w-full py-4 text-[10px] font-black uppercase tracking-widest border-amber-500/20 bg-amber-500/5 text-amber-500">Solicitar Saque</Button>
-                    </Card>
-
                     <Card className="p-8 border-blue-500/10 bg-blue-500/5 group">
                         <div className="flex items-center gap-4 mb-8">
                             <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400">
