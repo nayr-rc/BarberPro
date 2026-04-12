@@ -7,6 +7,8 @@ import Image from "next/image";
 
 const PIX_CODE = "00020126360014BR.GOV.BCB.PIX0114+55719990340675204000053039865802BR5923Ryan Goncalves da Silva6009SAO PAULO62140510w0IbCKBo9t63049A4A";
 const QR_URL = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(PIX_CODE)}&bgcolor=111111&color=AF8447&margin=16`;
+const PAYMENT_WHATSAPP = "+55 71 9903-4067";
+const PAYMENT_WHATSAPP_LINK = "https://wa.me/5571999034067?text=Ol%C3%A1!%20Acabei%20de%20fazer%20o%20pagamento%20do%20BarberPro%20e%20vou%20enviar%20o%20comprovante.";
 
 export default function PagamentoPage() {
     const router = useRouter();
@@ -74,7 +76,7 @@ export default function PagamentoPage() {
                         <div className="flex flex-col items-center gap-4">
                             <p className="text-xs uppercase tracking-widest font-bold text-gray-500">Escaneie o QR Code</p>
                             <div className="p-3 bg-[#111] border border-barber-gold/20 rounded-2xl shadow-xl shadow-barber-gold/5">
-                                <img
+                                <Image
                                     src={QR_URL}
                                     alt="QR Code PIX"
                                     width={220}
@@ -83,6 +85,20 @@ export default function PagamentoPage() {
                                 />
                             </div>
                             <p className="text-xs text-gray-600 font-light">Abra o app do seu banco → PIX → Ler QR Code</p>
+                            <div className="w-full rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-4 text-center">
+                                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-400">Envie o comprovante</p>
+                                <p className="mt-2 text-sm text-gray-300">
+                                    Depois do pagamento, chame no WhatsApp <span className="font-bold text-white">{PAYMENT_WHATSAPP}</span> e envie o comprovante por la.
+                                </p>
+                                <a
+                                    href={PAYMENT_WHATSAPP_LINK}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-4 inline-flex items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-300 transition-colors hover:bg-emerald-500/20"
+                                >
+                                    Chamar no WhatsApp
+                                </a>
+                            </div>
                         </div>
 
                         {/* Divisor */}

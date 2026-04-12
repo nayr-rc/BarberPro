@@ -12,14 +12,37 @@ interface Drink {
 
 import { useSearchParams } from 'next/navigation';
 
+const getInitialSchedule = (startParam: string | null) => {
+    if (!startParam) {
+        return { date: '', time: '' };
+    }
+
+    try {
+        const startDate = new Date(startParam);
+
+        if (Number.isNaN(startDate.getTime())) {
+            return { date: '', time: '' };
+        }
+
+        return {
+            date: startDate.toISOString().split('T')[0],
+            time: startDate.toTimeString().split(' ')[0].substring(0, 5),
+        };
+    } catch (e) {
+        console.error("Erro ao processar data do link:", e);
+        return { date: '', time: '' };
+    }
+};
+
 export default function BookingSection() {
     const { selectedService, setSelectedService } = useBookingStore();
     const searchParams = useSearchParams();
+    const initialSchedule = getInitialSchedule(searchParams.get('start'));
 
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
-    const [date, setDate] = useState('');
-    const [time, setTime] = useState('');
+    const [date, setDate] = useState(initialSchedule.date);
+    const [time, setTime] = useState(initialSchedule.time);
 
     const [drinks, setDrinks] = useState<Drink[]>([]);
     const [selectedDrink, setSelectedDrink] = useState<string>('');
@@ -28,35 +51,38 @@ export default function BookingSection() {
     const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
     const [appointmentId, setAppointmentId] = useState<string | null>(null);
 
+    const handleExpirePayment = () => {
+        alert('Tempo limite para pagamento expirado. O agendamento foi cancelado.');
+        setTimeLeft(0);
+        setIsPaymentModalOpen(false);
+    };
+
     useEffect(() => {
-        // Handle search params from shared calendar link
-        const barberIdParam = searchParams.get('barberId');
-        const startParam = searchParams.get('start');
-
-        if (startParam) {
-            try {
-                const startDate = new Date(startParam);
-                setDate(startDate.toISOString().split('T')[0]);
-                setTime(startDate.toTimeString().split(' ')[0].substring(0, 5));
-            } catch (e) {
-                console.error("Erro ao processar data do link:", e);
-            }
-        }
-
         // Fetch active drinks
         apiClient.get('/drinks')
             .then(res => setDrinks(res.data))
             .catch(err => console.error("Could not fetch drinks", err));
-    }, [searchParams]);
+    }, []);
 
     useEffect(() => {
-        let timer: NodeJS.Timeout;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+
         if (isPaymentModalOpen && timeLeft > 0) {
-            timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
-        } else if (timeLeft === 0 && isPaymentModalOpen) {
-            handleExpirePayment();
+            timer = setTimeout(() => {
+                if (timeLeft <= 1) {
+                    handleExpirePayment();
+                    return;
+                }
+
+                setTimeLeft(prev => prev - 1);
+            }, 1000);
         }
-        return () => clearTimeout(timer);
+
+        return () => {
+            if (timer) {
+                clearTimeout(timer);
+            }
+        };
     }, [isPaymentModalOpen, timeLeft]);
 
     const formatTime = (seconds: number) => {
@@ -109,11 +135,6 @@ export default function BookingSection() {
             console.error(error);
             alert('Erro ao processar pagamento.');
         }
-    };
-
-    const handleExpirePayment = () => {
-        alert('Tempo limite para pagamento expirado. O agendamento foi cancelado.');
-        setIsPaymentModalOpen(false);
     };
 
     return (
