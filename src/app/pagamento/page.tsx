@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle, Copy, Check, ArrowRight, ShieldCheck, Lock, Zap } from "lucide-react";
 import Image from "next/image";
 
-const PIX_CODE = "00020126360014BR.GOV.BCB.PIX0114+55719990340675204000053039865802BR5923Ryan Goncalves da Silva6009SAO PAULO62140510w0IbCKBo9t63049A4A";
+const PIX_CODE = "61548a6d-66f1-41f6-859f-4af451658955";
 const QR_URL = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(PIX_CODE)}&bgcolor=111111&color=AF8447&margin=16`;
 const PAYMENT_WHATSAPP = "+55 71 9903-4067";
 const PAYMENT_WHATSAPP_LINK = "https://wa.me/5571999034067?text=Ol%C3%A1!%20Acabei%20de%20fazer%20o%20pagamento%20do%20BarberPro%20e%20vou%20enviar%20o%20comprovante.";
