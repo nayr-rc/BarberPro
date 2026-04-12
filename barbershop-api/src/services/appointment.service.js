@@ -3,6 +3,8 @@ const { addMinutes, endOfDay, startOfDay } = require('date-fns');
 const ApiError = require('../utils/ApiError');
 const prisma = require('../client');
 
+const USER_APPOINTMENT_COOLDOWN_MINUTES = 240;
+
 const splitName = (name) => {
   if (!name || typeof name !== 'string') {
     return { firstName: undefined, lastName: undefined };
@@ -162,6 +164,38 @@ const ensureSlotIsAvailable = async ({ preferredHairdresserId, appointmentDateTi
   }
 };
 
+const ensureUserAppointmentCooldown = async ({ userId, appointmentDateTime }) => {
+  if (!userId || !appointmentDateTime) {
+    return;
+  }
+
+  const requestedStart = new Date(appointmentDateTime);
+  const minAllowedStart = addMinutes(requestedStart, -USER_APPOINTMENT_COOLDOWN_MINUTES);
+  const maxAllowedStart = addMinutes(requestedStart, USER_APPOINTMENT_COOLDOWN_MINUTES);
+
+  const nearbyAppointments = await prisma.appointment.findMany({
+    where: {
+      userId,
+      status: 'Upcoming',
+      appointmentDateTime: {
+        gte: minAllowedStart,
+        lte: maxAllowedStart,
+      },
+    },
+    select: {
+      id: true,
+      appointmentDateTime: true,
+    },
+  });
+
+  if (nearbyAppointments.length > 0) {
+    throw new ApiError(
+      httpStatus.CONFLICT,
+      `Voce precisa aguardar pelo menos ${USER_APPOINTMENT_COOLDOWN_MINUTES} minutos entre um agendamento e outro.`
+    );
+  }
+};
+
 /**
  * Create an appointment
  * @param {Object} appointmentBody
@@ -170,6 +204,7 @@ const ensureSlotIsAvailable = async ({ preferredHairdresserId, appointmentDateTi
 const createAppointment = async (appointmentBody) => {
   const normalizedPayload = await normalizeAppointmentPayload(appointmentBody);
   assertRequiredCreateFields(normalizedPayload);
+  await ensureUserAppointmentCooldown(normalizedPayload);
   const { drinks: drinkIds, ...data } = normalizedPayload;
 
   // Execute inside an atomic transaction to prevent race conditions
@@ -386,4 +421,5 @@ module.exports = {
   deleteAppointmentById,
   payAppointmentById,
   getWhatsappLinkForAppointment,
+  USER_APPOINTMENT_COOLDOWN_MINUTES,
 };

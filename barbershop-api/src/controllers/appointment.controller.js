@@ -3,6 +3,7 @@ const { randomUUID } = require('crypto');
 const catchAsync = require('../utils/catchAsync');
 const ApiError = require('../utils/ApiError');
 const pick = require('../utils/pick');
+const { sanitizeAppointment, sanitizePaginatedResults } = require('../utils/sanitizeResponse');
 
 const { appointmentService, userService, serviceService } = require('../services');
 const { sendAppointmentNotificationToUser, sendAppointmentNotificationToBarber } = require('./notification.controller');
@@ -28,6 +29,132 @@ const splitGuestName = (name) => {
     firstName: firstName || 'Cliente',
     lastName: rest.join(' ') || '-',
   };
+};
+
+const APPOINTMENT_CREATE_FIELDS = [
+  'preferredHairdresserId',
+  'preferredHairdresser',
+  'barberId',
+  'serviceCategoryId',
+  'serviceCategory',
+  'serviceTypeId',
+  'serviceType',
+  'serviceId',
+  'additionalNotes',
+  'appointmentDateTime',
+  'datetimeStart',
+  'drinks',
+  'drinkIds',
+];
+
+const ADMIN_APPOINTMENT_UPDATE_FIELDS = [
+  'firstName',
+  'lastName',
+  'contactNumber',
+  'email',
+  'preferredHairdresserId',
+  'preferredHairdresser',
+  'barberId',
+  'serviceCategoryId',
+  'serviceCategory',
+  'serviceTypeId',
+  'serviceType',
+  'serviceId',
+  'additionalNotes',
+  'appointmentDateTime',
+  'datetimeStart',
+  'status',
+  'drinks',
+  'drinkIds',
+];
+
+const BARBER_APPOINTMENT_UPDATE_FIELDS = ['status', 'additionalNotes'];
+const CUSTOMER_APPOINTMENT_UPDATE_FIELDS = ['status', 'additionalNotes'];
+
+const assertCanAccessAppointment = (appointment, user) => {
+  if (user.role === 'admin') {
+    return;
+  }
+
+  if (appointment.userId === user.id || appointment.preferredHairdresserId === user.id) {
+    return;
+  }
+
+  throw new ApiError(httpStatus.FORBIDDEN, 'Acesso negado');
+};
+
+const assertCanManageAppointmentPayment = (appointment, user) => {
+  if (user.role === 'admin' || appointment.preferredHairdresserId === user.id) {
+    return;
+  }
+
+  throw new ApiError(httpStatus.FORBIDDEN, 'Acesso negado');
+};
+
+const scopeAppointmentFilter = (filter, user) => {
+  if (user.role === 'admin') {
+    return filter;
+  }
+
+  if (user.role === 'barber') {
+    return {
+      ...filter,
+      preferredHairdresserId: user.id,
+      preferredHairdresser: undefined,
+      userId: undefined,
+    };
+  }
+
+  return {
+    ...filter,
+    userId: user.id,
+    preferredHairdresserId: undefined,
+    preferredHairdresser: undefined,
+  };
+};
+
+const getCreateAppointmentPayload = (req) => {
+  const basePayload = pick(req.body, APPOINTMENT_CREATE_FIELDS);
+
+  if (req.user.role === 'admin') {
+    return {
+      ...basePayload,
+      userId: req.user.id,
+      email: req.user.email,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
+      contactNumber: req.user.contactNumber,
+      status: 'Upcoming',
+    };
+  }
+
+  return {
+    ...basePayload,
+    userId: req.user.id,
+    email: req.user.email,
+    firstName: req.user.firstName,
+    lastName: req.user.lastName,
+    contactNumber: req.user.contactNumber,
+    status: 'Upcoming',
+  };
+};
+
+const getUpdateAppointmentPayload = (req) => {
+  if (req.user.role === 'admin') {
+    return pick(req.body, ADMIN_APPOINTMENT_UPDATE_FIELDS);
+  }
+
+  if (req.user.role === 'barber') {
+    return pick(req.body, BARBER_APPOINTMENT_UPDATE_FIELDS);
+  }
+
+  const payload = pick(req.body, CUSTOMER_APPOINTMENT_UPDATE_FIELDS);
+
+  if (payload.status && payload.status !== 'Cancelled') {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Clientes so podem cancelar o proprio agendamento');
+  }
+
+  return payload;
 };
 
 const getGuestIdentity = async ({ guestName, guestPhone, email }) => {
@@ -69,16 +196,7 @@ const getGuestIdentity = async ({ guestName, guestPhone, email }) => {
 };
 
 const createAppointment = catchAsync(async (req, res) => {
-  // NUNCA confie no frontend para campos de identidade, use sempre do token (exceto admin)
-  const userPayload = {
-    userId: req.user.role === 'admin' ? req.body.userId || req.user.id : req.user.id,
-    email: req.user.role === 'admin' ? req.body.email || req.user.email : req.user.email,
-    firstName: req.user.role === 'admin' ? req.body.firstName || req.user.firstName : req.user.firstName,
-    lastName: req.user.role === 'admin' ? req.body.lastName || req.user.lastName : req.user.lastName,
-    contactNumber: req.user.role === 'admin' ? req.body.contactNumber || req.user.contactNumber : req.user.contactNumber,
-  };
-
-  const appointment = await appointmentService.createAppointment(removeUndefined({ ...req.body, ...userPayload }));
+  const appointment = await appointmentService.createAppointment(removeUndefined(getCreateAppointmentPayload(req)));
 
   const barberDetails = await userService.getUserById(appointment.preferredHairdresserId);
   const serviceDetails = await serviceService.getServiceById(appointment.serviceTypeId);
@@ -102,7 +220,7 @@ const createAppointment = catchAsync(async (req, res) => {
     notificationType: 'new_appointment',
   });
 
-  res.status(httpStatus.CREATED).send(appointment);
+  res.status(httpStatus.CREATED).send(sanitizeAppointment(appointment));
 });
 
 const createPublicAppointment = catchAsync(async (req, res) => {
@@ -185,8 +303,9 @@ const getAppointments = catchAsync(async (req, res) => {
 
   const options = pick(req.query, ['sortBy', 'populate', 'page', 'limit']);
 
-  const result = await appointmentService.queryAppointments(filter, options);
-  res.send(result);
+  const scopedFilter = scopeAppointmentFilter(filter, req.user);
+  const result = await appointmentService.queryAppointments(scopedFilter, options);
+  res.send(sanitizePaginatedResults(result, sanitizeAppointment));
 });
 
 const getAppointment = catchAsync(async (req, res) => {
@@ -194,12 +313,8 @@ const getAppointment = catchAsync(async (req, res) => {
   if (!appointment) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
   }
-
-  if (req.user && req.user.role !== 'admin' && appointment.userId !== req.user.id && appointment.preferredHairdresserId !== req.user.id) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para acessar este agendamento');
-  }
-
-  res.send(appointment);
+  assertCanAccessAppointment(appointment, req.user);
+  res.send(sanitizeAppointment(appointment));
 });
 
 const updateAppointment = catchAsync(async (req, res) => {
@@ -208,11 +323,14 @@ const updateAppointment = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
   }
 
-  if (req.user && req.user.role !== 'admin' && existingAppointment.userId !== req.user.id && existingAppointment.preferredHairdresserId !== req.user.id) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para alterar este agendamento');
+  assertCanAccessAppointment(existingAppointment, req.user);
+
+  const payload = getUpdateAppointmentPayload(req);
+  if (Object.keys(payload).length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Nenhum campo permitido para atualizacao foi enviado');
   }
 
-  const appointment = await appointmentService.updateAppointmentById(req.params.appointmentId, req.body);
+  const appointment = await appointmentService.updateAppointmentById(req.params.appointmentId, payload);
 
   const barberDetails = await userService.getUserById(appointment.preferredHairdresserId);
   const serviceDetails = await serviceService.getServiceById(appointment.serviceTypeId);
@@ -250,26 +368,29 @@ const updateAppointment = catchAsync(async (req, res) => {
     notificationType: 'appointment_updated',
   });
 
-  res.send(appointment);
+  res.send(sanitizeAppointment(appointment));
 });
 
 const deleteAppointment = catchAsync(async (req, res) => {
-  const existingAppointment = await appointmentService.getAppointmentById(req.params.appointmentId);
-  if (!existingAppointment) {
+  const appointment = await appointmentService.getAppointmentById(req.params.appointmentId);
+  if (!appointment) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
   }
 
-  if (req.user && req.user.role !== 'admin' && existingAppointment.userId !== req.user.id && existingAppointment.preferredHairdresserId !== req.user.id) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Você não tem permissão para deletar este agendamento');
-  }
-
+  assertCanAccessAppointment(appointment, req.user);
   await appointmentService.deleteAppointmentById(req.params.appointmentId);
   res.status(httpStatus.NO_CONTENT).send();
 });
 
 const payAppointment = catchAsync(async (req, res) => {
+  const existingAppointment = await appointmentService.getAppointmentById(req.params.appointmentId);
+  if (!existingAppointment) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Agendamento não encontrado');
+  }
+
+  assertCanManageAppointmentPayment(existingAppointment, req.user);
   const appointment = await appointmentService.payAppointmentById(req.params.appointmentId);
-  res.send(appointment);
+  res.send(sanitizeAppointment(appointment));
 });
 
 const getWhatsappLink = catchAsync(async (req, res) => {

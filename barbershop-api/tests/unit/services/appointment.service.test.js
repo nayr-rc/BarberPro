@@ -23,7 +23,7 @@ describe('appointment.service', () => {
 
   test('createAppointment normalizes legacy payload keys', async () => {
     prisma.service.findUnique.mockResolvedValue({ categoryId: 'category-1' });
-    prisma.appointment.findMany.mockResolvedValue([]);
+    prisma.appointment.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
     prisma.appointment.create.mockResolvedValue({ id: 'appointment-1' });
 
     await appointmentService.createAppointment({
@@ -60,7 +60,7 @@ describe('appointment.service', () => {
 
   test('createAppointment throws conflict when slot already reserved', async () => {
     prisma.service.findUnique.mockResolvedValue({ categoryId: 'category-1' });
-    prisma.appointment.findMany.mockResolvedValue([
+    prisma.appointment.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([
       {
         id: 'existing-appointment',
         appointmentDateTime: new Date().toISOString(),
@@ -80,6 +80,36 @@ describe('appointment.service', () => {
         appointmentDateTime: new Date().toISOString(),
       })
     ).rejects.toMatchObject({ statusCode: httpStatus.CONFLICT });
+  });
+
+  test('createAppointment throws conflict when user has another appointment within cooldown window', async () => {
+    const appointmentTime = new Date('2026-04-12T14:00:00.000Z').toISOString();
+
+    prisma.service.findUnique.mockResolvedValue({ categoryId: 'category-1' });
+    prisma.appointment.findMany.mockResolvedValueOnce([
+      {
+        id: 'existing-user-appointment',
+        appointmentDateTime: new Date('2026-04-12T12:30:00.000Z').toISOString(),
+      },
+    ]);
+
+    await expect(
+      appointmentService.createAppointment({
+        firstName: 'Joao',
+        lastName: 'Silva',
+        contactNumber: '11999999999',
+        email: 'joao@barber.com',
+        userId: 'user-1',
+        preferredHairdresser: 'barber-1',
+        serviceType: 'service-1',
+        appointmentDateTime: appointmentTime,
+      })
+    ).rejects.toMatchObject({
+      statusCode: httpStatus.CONFLICT,
+      message: expect.stringContaining('240 minutos'),
+    });
+
+    expect(prisma.appointment.create).not.toHaveBeenCalled();
   });
 
   test('queryAppointments normalizes legacy filters', async () => {

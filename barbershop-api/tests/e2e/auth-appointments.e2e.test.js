@@ -1,6 +1,7 @@
 const { randomUUID: mockRandomUUID } = require('crypto');
 const request = require('supertest');
 const httpStatus = require('http-status');
+const bcrypt = require('bcryptjs');
 
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
@@ -413,7 +414,6 @@ const registerPayload = (overrides = {}) => ({
   email: `user-${mockRandomUUID()}@barberpro.com`,
   contactNumber: '11999999999',
   password: 'Password123',
-  role: 'barber',
   ...overrides,
 });
 
@@ -434,6 +434,38 @@ const registerAndLogin = async (userInput = {}) => {
   };
 };
 
+const seedAndLogin = async (overrides = {}) => {
+  const plainPassword = overrides.password || 'Password123';
+  const seededUser = await prisma.user.create({
+    data: {
+      firstName: 'John',
+      lastName: 'Tester',
+      email: `seed-${mockRandomUUID()}@barberpro.com`,
+      contactNumber: '11999999999',
+      password: await bcrypt.hash(plainPassword, 8),
+      role: 'barber',
+      subscriptionStatus: overrides.role === 'barber' ? 'active' : 'pending',
+      ...overrides,
+      password: await bcrypt.hash(plainPassword, 8),
+    },
+  });
+
+  const loginRes = await request(app)
+    .post('/v1/auth/login')
+    .send({ email: seededUser.email, password: plainPassword })
+    .expect(httpStatus.OK);
+
+  return {
+    seededUser,
+    user: loginRes.body.user,
+    tokens: loginRes.body.tokens,
+    credentials: {
+      email: seededUser.email,
+      password: plainPassword,
+    },
+  };
+};
+
 describe('E2E - auth and appointments', () => {
   beforeEach(() => {
     prisma.__reset();
@@ -443,6 +475,8 @@ describe('E2E - auth and appointments', () => {
     const auth = await registerAndLogin({ role: 'admin' });
 
     expect(auth.user.email).toBe(auth.credentials.email);
+    expect(auth.user.role).toBe('barber');
+    expect(auth.user.password).toBeUndefined();
     expect(auth.tokens).toHaveProperty('access.token');
     expect(auth.tokens).toHaveProperty('refresh.token');
 
@@ -477,15 +511,28 @@ describe('E2E - auth and appointments', () => {
     });
   });
 
+  test('blocks self privilege escalation through user update', async () => {
+    const barberAuth = await registerAndLogin();
+
+    const res = await request(app)
+      .patch(`/v1/users/${barberAuth.user.id}`)
+      .set('Authorization', `Bearer ${barberAuth.tokens.access.token}`)
+      .send({ role: 'admin' })
+      .expect(httpStatus.FORBIDDEN);
+
+    expect(res.body.message).toContain('campos privilegiados');
+  });
+
   test('creates, lists and pays appointment using login token and legacy-compatible fields', async () => {
-    const adminAuth = await registerAndLogin({
+    const adminAuth = await seedAndLogin({
       role: 'admin',
       firstName: 'Admin',
       lastName: 'Owner',
       contactNumber: '11988887777',
     });
-    const barberAuth = await registerAndLogin({
+    const barberAuth = await seedAndLogin({
       role: 'barber',
+      subscriptionStatus: 'active',
       firstName: 'Barber',
       lastName: 'Pro',
       contactNumber: '11977776666',
@@ -539,7 +586,7 @@ describe('E2E - auth and appointments', () => {
       .query({
         preferredHairdresser: barberAuth.user.id,
         serviceType: serviceId,
-        populate: 'preferredHairdresser,serviceType',
+        populate: 'preferredHairdresser,serviceType,user',
       })
       .expect(httpStatus.OK);
 
@@ -549,6 +596,8 @@ describe('E2E - auth and appointments', () => {
       preferredHairdresserId: barberAuth.user.id,
     });
     expect(listRes.body.results[0]).toHaveProperty('preferredHairdresser.id', barberAuth.user.id);
+    expect(listRes.body.results[0].preferredHairdresser.password).toBeUndefined();
+    expect(listRes.body.results[0].user.password).toBeUndefined();
     expect(listRes.body.results[0]).toHaveProperty('serviceType.id', serviceId);
 
     const payRes = await request(app)
@@ -563,8 +612,8 @@ describe('E2E - auth and appointments', () => {
   });
 
   test('creates public appointment without authentication', async () => {
-    const adminAuth = await registerAndLogin({ role: 'admin' });
-    const barberAuth = await registerAndLogin({ role: 'barber' });
+    const adminAuth = await seedAndLogin({ role: 'admin' });
+    const barberAuth = await seedAndLogin({ role: 'barber', subscriptionStatus: 'active' });
 
     const createCategoryRes = await request(app)
       .post('/v1/service-categories')
@@ -604,7 +653,7 @@ describe('E2E - auth and appointments', () => {
   });
 
   test('creates public appointment using service name fallback when serviceId is absent', async () => {
-    const barberAuth = await registerAndLogin({ role: 'barber' });
+    const barberAuth = await seedAndLogin({ role: 'barber', subscriptionStatus: 'active' });
 
     const appointmentDate = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString();
     const response = await request(app)
@@ -649,8 +698,53 @@ describe('E2E - auth and appointments', () => {
     });
   });
 
+  test('prevents one customer from reading or paying another customer appointment', async () => {
+    const adminAuth = await seedAndLogin({ role: 'admin' });
+    const barberAuth = await seedAndLogin({ role: 'barber', subscriptionStatus: 'active' });
+    const customerOne = await seedAndLogin({ role: 'customer' });
+    const customerTwo = await seedAndLogin({ role: 'customer' });
+
+    const createCategoryRes = await request(app)
+      .post('/v1/service-categories')
+      .set('Authorization', `Bearer ${adminAuth.tokens.access.token}`)
+      .send({ name: 'Cabelo' })
+      .expect(httpStatus.CREATED);
+
+    const createServiceRes = await request(app)
+      .post('/v1/services')
+      .set('Authorization', `Bearer ${adminAuth.tokens.access.token}`)
+      .send({
+        title: 'Corte social',
+        description: 'Corte tradicional',
+        price: 40,
+        categoryId: createCategoryRes.body.id,
+      })
+      .expect(httpStatus.CREATED);
+
+    const appointmentDate = new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString();
+    const createAppointmentRes = await request(app)
+      .post('/v1/appointments')
+      .set('Authorization', `Bearer ${customerOne.tokens.access.token}`)
+      .send({
+        preferredHairdresser: barberAuth.user.id,
+        serviceType: createServiceRes.body.id,
+        datetimeStart: appointmentDate,
+      })
+      .expect(httpStatus.CREATED);
+
+    await request(app)
+      .get(`/v1/appointments/${createAppointmentRes.body.id}`)
+      .set('Authorization', `Bearer ${customerTwo.tokens.access.token}`)
+      .expect(httpStatus.FORBIDDEN);
+
+    await request(app)
+      .post(`/v1/appointments/${createAppointmentRes.body.id}/pay`)
+      .set('Authorization', `Bearer ${customerTwo.tokens.access.token}`)
+      .expect(httpStatus.FORBIDDEN);
+  });
+
   test('returns 400 when appointment id is invalid UUID on pay endpoint', async () => {
-    const adminAuth = await registerAndLogin({ role: 'admin' });
+    const adminAuth = await seedAndLogin({ role: 'admin' });
 
     const res = await request(app)
       .post('/v1/appointments/not-a-uuid/pay')

@@ -3,6 +3,7 @@ const catchAsync = require('../utils/catchAsync');
 const pick = require('../utils/pick');
 const ApiError = require('../utils/ApiError');
 const { reviewService } = require('../services');
+const { sanitizeReview, sanitizePaginatedResults } = require('../utils/sanitizeResponse');
 
 const createReview = catchAsync(async (req, res) => {
   const review = await reviewService.createReview({
@@ -28,7 +29,7 @@ const getReviews = catchAsync(async (req, res) => {
   ]);
   const options = pick(req.query, ['sortBy', 'limit', 'page', 'populate']);
   const reviews = await reviewService.getReviews(filter, options);
-  res.status(httpStatus.OK).send(reviews);
+  res.status(httpStatus.OK).send(sanitizePaginatedResults(reviews, sanitizeReview));
 });
 
 const getReview = catchAsync(async (req, res) => {
@@ -37,7 +38,7 @@ const getReview = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Review not found');
   }
 
-  res.status(httpStatus.OK).send(review);
+  res.status(httpStatus.OK).send(sanitizeReview(review));
 });
 
 const updateReview = catchAsync(async (req, res) => {
@@ -51,7 +52,7 @@ const updateReview = catchAsync(async (req, res) => {
   }
 
   const review = await reviewService.updateReviewById(req.params.reviewId, req.body);
-  res.status(httpStatus.OK).send(review);
+  res.status(httpStatus.OK).send(sanitizeReview(review));
 });
 
 const deleteReview = catchAsync(async (req, res) => {

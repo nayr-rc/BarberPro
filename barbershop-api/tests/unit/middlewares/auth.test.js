@@ -58,7 +58,7 @@ describe('auth middleware', () => {
     expect(error.statusCode).toBe(httpStatus.FORBIDDEN);
   });
 
-  test('allows self access even without required right', async () => {
+  test('returns forbidden for self access without required right', async () => {
     const req = { params: { userId: 'same-user' } };
     const next = jest.fn();
 
@@ -68,6 +68,8 @@ describe('auth middleware', () => {
 
     await auth('manageUsers')(req, res, next);
 
-    expect(next).toHaveBeenCalledWith();
+    const error = next.mock.calls[0][0];
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.statusCode).toBe(httpStatus.FORBIDDEN);
   });
 });

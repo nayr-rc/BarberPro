@@ -14,7 +14,7 @@ router
 router
   .route('/:userId')
   .get(auth(), validate(userValidation.getUser), userController.getUser)
-  .patch(auth('manageUsers'), validate(userValidation.updateUser), userController.updateUser)
+  .patch(auth(), validate(userValidation.updateUser), userController.updateUser)
   .delete(auth('manageUsers'), validate(userValidation.deleteUser), userController.deleteUser);
 
 router.route('/:userId/password').patch(auth(), validate(userValidation.changePassword), userController.changePassword);

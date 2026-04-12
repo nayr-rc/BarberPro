@@ -3,6 +3,7 @@ const catchAsync = require('../utils/catchAsync');
 const pick = require('../utils/pick');
 const ApiError = require('../utils/ApiError');
 const { serviceService } = require('../services');
+const { sanitizeService, sanitizePaginatedResults } = require('../utils/sanitizeResponse');
 
 const assertCanManageService = (service, user) => {
   if (user.role === 'admin') {
@@ -28,7 +29,7 @@ const getServices = catchAsync(async (req, res) => {
   const filter = pick(req.query, ['title', 'category', 'categoryId', 'barberId']);
   const options = pick(req.query, ['sortBy', 'limit', 'page', 'populate']);
   const services = await serviceService.getServices(filter, options);
-  res.status(httpStatus.OK).send(services);
+  res.status(httpStatus.OK).send(sanitizePaginatedResults(services, sanitizeService));
 });
 
 const getService = catchAsync(async (req, res) => {
@@ -37,7 +38,7 @@ const getService = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Service not found');
   }
 
-  res.status(httpStatus.OK).send(service);
+  res.status(httpStatus.OK).send(sanitizeService(service));
 });
 
 const updateService = catchAsync(async (req, res) => {
@@ -54,7 +55,7 @@ const updateService = catchAsync(async (req, res) => {
   };
 
   const service = await serviceService.updateServiceById(req.params.serviceId, payload);
-  res.status(httpStatus.OK).send(service);
+  res.status(httpStatus.OK).send(sanitizeService(service));
 });
 
 const deleteService = catchAsync(async (req, res) => {
