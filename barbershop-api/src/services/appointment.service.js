@@ -349,15 +349,20 @@ const getWhatsappLinkForAppointment = async (appointmentId) => {
   const servicePrice = service && service.price ? service.price.toFixed(2).replace('.', ',') : '0,00';
   const customerName = `${appointment.firstName || ''} ${appointment.lastName || ''}`.trim() || 'Cliente';
 
-  // Format date correctly without importing entire date-fns locale if not necessary
+  // Format date in Brazil timezone (America/Sao_Paulo = UTC-3) regardless of server timezone
   const dateObj = new Date(appointment.appointmentDateTime);
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const year = dateObj.getFullYear();
-  const hours = String(dateObj.getHours()).padStart(2, '0');
-  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+  const brDateParts = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(dateObj);
 
-  const dateFormatted = `${day}/${month}/${year} às ${hours}:${minutes}`;
+  const get = (type) => brDateParts.find((p) => p.type === type)?.value || '00';
+  const dateFormatted = `${get('day')}/${get('month')}/${get('year')} às ${get('hour')}:${get('minute')}`;
 
   const message = `Olá ${barber.firstName || 'Barbeiro'}, gostaria de confirmar meu agendamento:
 Cliente: ${customerName}
