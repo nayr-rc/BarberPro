@@ -12,8 +12,37 @@ import { useRouter } from "next/navigation";
 export default function BarbeiroFinanceiro() {
     const router = useRouter();
     const { hasHydrated, isAuthenticated } = useAuthStore();
-    const { resumo, carregarResumo, isLoading } = useGanhosStore();
+    const { resumo, appointments, carregarResumo, isLoading } = useGanhosStore();
     const [periodo, setPeriodo] = useState<"hoje" | "semana" | "mes">("semana");
+
+    const handleDownloadCSV = () => {
+        if (!appointments || appointments.length === 0) {
+            alert("Nenhum dado disponível para exportar no momento.");
+            return;
+        }
+
+        const headers = ["ID", "Cliente", "Serviço", "Valor (R$)", "Data", "Status"];
+        const rows = appointments.map(a => {
+            const client = a.firstName ? `${a.firstName} ${a.lastName || ''}`.trim() : (a.guestName || 'Cliente');
+            const service = a.serviceType?.title || 'Serviço';
+            const price = Number(a.serviceType?.price || 0).toFixed(2);
+            const date = new Date(a.appointmentDateTime).toLocaleString('pt-BR');
+            const status = a.status;
+
+            return `"${a.id}","${client}","${service}","${price}","${date}","${status}"`;
+        });
+
+        const csvContent = [headers.join(","), ...rows].join("\n");
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `relatorio_barberpro_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     useEffect(() => {
         if (hasHydrated && !isAuthenticated) {
@@ -94,10 +123,12 @@ export default function BarbeiroFinanceiro() {
                             </div>
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Previsão Próximo Mês</p>
-                                <p className="text-2xl font-black">R$ 0,00</p>
+                                <p className="text-2xl font-black">
+                                    {(resumo.totalSemana * 4).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </p>
                             </div>
                         </div>
-                        <Button variant="outline" className="w-full py-4 text-[10px] font-black uppercase tracking-widest border-blue-500/20 bg-blue-500/5 text-blue-400">Ver Projeções</Button>
+                        <Button variant="outline" className="w-full py-4 text-[10px] font-black uppercase tracking-widest border-blue-500/20 bg-blue-500/5 text-blue-400">Projeção Dinâmica Ativa</Button>
                     </Card>
                 </section>
 
@@ -117,8 +148,8 @@ export default function BarbeiroFinanceiro() {
                                 <p className="text-xs text-gray-600 font-medium uppercase tracking-widest">Formato PDF, CSV ou Excel</p>
                             </div>
                         </div>
-                        <Button variant="gold" className="min-h-[58px] px-12 uppercase text-[10px] font-black tracking-[0.2em] shadow-2xl shadow-amber-500/20" onClick={() => alert("Relatório baixado! 📄")}>
-                            <Download size={18} className="mr-2" /> Baixar PDF
+                        <Button variant="gold" className="min-h-[58px] px-12 uppercase text-[10px] font-black tracking-[0.2em] shadow-2xl shadow-amber-500/20" onClick={handleDownloadCSV}>
+                            <Download size={18} className="mr-2" /> Baixar Planilha CSV
                         </Button>
                     </Card>
                 </section>

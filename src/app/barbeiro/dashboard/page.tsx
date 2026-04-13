@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Calendar, DollarSign, Users, CheckCircle2, Clock, ChevronRight, Plus, Power, Share2, Copy, Check, ExternalLink } from "lucide-react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useAgendaStore } from "@/stores/useAgendaStore";
+import { useGanhosStore } from "@/stores/useGanhosStore";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import NovoAgendamentoModal from "@/components/modals/NovoAgendamentoModal";
@@ -12,7 +13,8 @@ import NovoAgendamentoModal from "@/components/modals/NovoAgendamentoModal";
 export default function Dashboard() {
     const router = useRouter();
     const { hasHydrated, user, logout, isAuthenticated } = useAuthStore();
-    const { agendamentosHoje, carregarAgendamentos, atualizarStatus, limparAgendamentosExpirados, isLoading } = useAgendaStore();
+    const { agendamentosHoje, carregarAgendamentos, atualizarStatus, limparAgendamentosExpirados, isLoading: isAgendaLoading } = useAgendaStore();
+    const { resumo, carregarResumo, isLoading: isGanhosLoading } = useGanhosStore();
     const [modalOpen, setModalOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -20,8 +22,9 @@ export default function Dashboard() {
     useEffect(() => {
         if (isAuthenticated) {
             carregarAgendamentos();
+            carregarResumo();
         }
-    }, [isAuthenticated, carregarAgendamentos]);
+    }, [isAuthenticated, carregarAgendamentos, carregarResumo]);
 
     useEffect(() => {
         const interval = window.setInterval(() => {
@@ -120,7 +123,7 @@ export default function Dashboard() {
                         </div>
                     </Card>
                 </section>
-                <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Card className="p-6 border-emerald-500/10 bg-emerald-500/5 group hover:border-emerald-500/30 transition-all">
                         <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400 w-fit mb-4">
                             <Calendar className="w-6 h-6" />
@@ -133,24 +136,16 @@ export default function Dashboard() {
                         <div className="p-3 bg-amber-500/10 rounded-xl text-amber-400 w-fit mb-4">
                             <DollarSign className="w-6 h-6" />
                         </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Faturamento</p>
-                        <p className="text-3xl font-black">R$ 0<span className="text-xs font-bold text-gray-500">,00</span></p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Faturamento (Hoje)</p>
+                        <p className="text-3xl font-black">{isGanhosLoading ? "..." : resumo.totalHoje.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                     </Card>
 
                     <Card className="p-6 border-blue-500/10 bg-blue-500/5 group hover:border-blue-500/30 transition-all">
                         <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400 w-fit mb-4">
                             <Users className="w-6 h-6" />
                         </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Novos Clientes</p>
-                        <p className="text-3xl font-black">0 <span className="text-xs font-bold text-gray-500">Hoje</span></p>
-                    </Card>
-
-                    <Card className="p-6 border-purple-500/10 bg-purple-500/5 group hover:border-purple-500/30 transition-all">
-                        <div className="p-3 bg-purple-500/10 rounded-xl text-purple-400 w-fit mb-4">
-                            <CheckCircle2 className="w-6 h-6" />
-                        </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Taxa Recompra</p>
-                        <p className="text-3xl font-black">--%</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">Clientes Únicos (Mês)</p>
+                        <p className="text-3xl font-black">{isGanhosLoading ? "..." : resumo.clientesAtivos}</p>
                     </Card>
                 </section>
 
@@ -169,7 +164,7 @@ export default function Dashboard() {
                     </div>
 
                     <Card className="text-center py-16 px-8 border-dashed border-white/10 bg-white/[0.02]">
-                        {isLoading ? (
+                        {isAgendaLoading ? (
                             <div className="animate-pulse space-y-4">
                                 <div className="h-4 w-32 bg-white/5 mx-auto rounded-full" />
                                 <div className="h-10 w-48 bg-white/5 mx-auto rounded-full" />
