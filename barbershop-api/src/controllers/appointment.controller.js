@@ -72,10 +72,6 @@ const BARBER_APPOINTMENT_UPDATE_FIELDS = ['status', 'additionalNotes'];
 const CUSTOMER_APPOINTMENT_UPDATE_FIELDS = ['status', 'additionalNotes'];
 
 const assertCanAccessAppointment = (appointment, user) => {
-  if (user.role === 'admin') {
-    return;
-  }
-
   if (appointment.userId === user.id || appointment.preferredHairdresserId === user.id) {
     return;
   }
@@ -84,7 +80,7 @@ const assertCanAccessAppointment = (appointment, user) => {
 };
 
 const assertCanManageAppointmentPayment = (appointment, user) => {
-  if (user.role === 'admin' || appointment.preferredHairdresserId === user.id) {
+  if (appointment.preferredHairdresserId === user.id) {
     return;
   }
 
@@ -92,10 +88,6 @@ const assertCanManageAppointmentPayment = (appointment, user) => {
 };
 
 const scopeAppointmentFilter = (filter, user) => {
-  if (user.role === 'admin') {
-    return filter;
-  }
-
   if (user.role === 'barber') {
     return {
       ...filter,
