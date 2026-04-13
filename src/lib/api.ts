@@ -100,6 +100,9 @@ apiClient.interceptors.response.use(
     const refreshToken = getRefreshToken();
     if (!refreshToken) {
       useAuthStore.getState().logout();
+      if (typeof window !== "undefined" && window.location.pathname !== "/auth/login") {
+        window.location.href = "/auth/login";
+      }
       return Promise.reject(error);
     }
 
@@ -144,6 +147,9 @@ apiClient.interceptors.response.use(
     } catch (refreshError) {
       flushPendingRequests(refreshError);
       useAuthStore.getState().logout();
+      if (typeof window !== "undefined" && window.location.pathname !== "/auth/login") {
+        window.location.href = "/auth/login";
+      }
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

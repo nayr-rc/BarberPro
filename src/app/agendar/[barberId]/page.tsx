@@ -99,9 +99,25 @@ export default function PaginaAgendar() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [barberPhone, setBarberPhone] = useState('');
+  const [recentBookings, setRecentBookings] = useState<string[]>([]);
 
   const parsedBarberId = String(barberId || '');
   const isServiceIdUuid = selectedService ? UUID_REGEX.test(selectedService.id) : false;
+
+  useEffect(() => {
+    // Clean up past bookings and load upcoming ones
+    try {
+      const stored = localStorage.getItem('barberpro_recent_bookings');
+      if (stored) {
+        const bookings: string[] = JSON.parse(stored);
+        const validBookings = bookings.filter(b => new Date(b).getTime() > Date.now());
+        setRecentBookings(validBookings);
+        localStorage.setItem('barberpro_recent_bookings', JSON.stringify(validBookings));
+      }
+    } catch {
+      // Ignorar erro
+    }
+  }, []);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -213,9 +229,26 @@ export default function PaginaAgendar() {
 
   const daySlots = availableSlots;
 
+  const getSlotCooldownConflict = (slotStart: string) => {
+    const slotTime = parseISO(slotStart).getTime();
+    for (const booking of recentBookings) {
+      const bookingTime = parseISO(booking).getTime();
+      const diffMinutes = Math.abs(slotTime - bookingTime) / (1000 * 60);
+      if (diffMinutes < 240) {
+        return booking; 
+      }
+    }
+    return null;
+  };
+
   const handleBooking = (slot: TimeSlot) => {
     if (!selectedService) {
       setFeedback({ type: 'erro', text: 'Escolha um serviço antes de selecionar um horário.' });
+      return;
+    }
+    
+    if (getSlotCooldownConflict(slot.start)) {
+      setFeedback({ type: 'erro', text: 'Anti-Spam: Você precisa aguardar um intervalo mínimo de 4 horas entre agendamentos.' });
       return;
     }
 
@@ -286,6 +319,10 @@ export default function PaginaAgendar() {
       }
 
       bookingCreated = true;
+
+      const updatedBookings = [...recentBookings, selectedSlot.start];
+      setRecentBookings(updatedBookings);
+      localStorage.setItem('barberpro_recent_bookings', JSON.stringify(updatedBookings));
 
       try {
         const appointmentId = responseData.id;
@@ -364,7 +401,7 @@ export default function PaginaAgendar() {
                 : 'bg-blue-500/10 border-blue-500/30 text-blue-100'
               }`}
           >
-            <AlertCircle size={18} className="mt-0.5" />
+            <AlertCircle size={18} className="mt-0.5 shrink-0" />
             <p className="text-sm uppercase tracking-wide font-semibold">{feedback.text}</p>
             <button
               onClick={() => setFeedback(null)}
@@ -374,6 +411,13 @@ export default function PaginaAgendar() {
             </button>
           </div>
         )}
+
+        <div className="mb-8 p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl flex items-center gap-3 animate-fade-in text-amber-200/80">
+          <Clock size={18} className="shrink-0 text-amber-500/60" />
+          <p className="text-[10px] uppercase tracking-widest font-bold">
+            <span className="text-amber-500">Sistema Anti-Spam:</span> É exigido um intervalo mínimo de 240 minutos (4h) entre cada agendamento do mesmo cliente.
+          </p>
+        </div>
 
         <div className="space-y-8">
           <div className="space-y-4">
@@ -446,21 +490,32 @@ export default function PaginaAgendar() {
                   <p className="text-xs uppercase tracking-widest text-barber-accent">Atualizando horários...</p>
                 )}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                  {daySlots.map((slot, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleBooking(slot)}
-                      className="h-24 rounded-2xl flex flex-col items-center justify-center transition-all border bg-barber-dark border-white/5 text-white hover:border-barber-gold hover:text-barber-gold group px-2"
-                    >
-                      <span className="text-[9px] uppercase font-bold tracking-widest mb-1 opacity-50">Disponível</span>
-                      <span className="text-base font-heading font-bold leading-none">
-                        {format(parseISO(slot.start), 'HH:mm')} - {format(parseISO(slot.end), 'HH:mm')}
-                      </span>
-                      <span className="text-[9px] uppercase mt-1 font-bold tracking-tighter opacity-70">
-                        {selectedService ? formatCurrency(selectedService.price) : ''}
-                      </span>
-                    </button>
-                  ))}
+                  {daySlots.map((slot, index) => {
+                    const conflict = getSlotCooldownConflict(slot.start);
+                    
+                    return (
+                      <button
+                        key={index}
+                        disabled={!!conflict}
+                        onClick={() => handleBooking(slot)}
+                        className={`h-24 rounded-2xl flex flex-col items-center justify-center transition-all border px-2 group ${
+                          conflict 
+                            ? 'bg-barber-black border-red-500/20 text-red-500/50 opacity-60 cursor-not-allowed' 
+                            : 'bg-barber-dark border-white/5 text-white hover:border-barber-gold hover:text-barber-gold'
+                        }`}
+                      >
+                        <span className={`text-[9px] uppercase font-bold tracking-widest mb-1 ${conflict ? 'text-red-500/80' : 'opacity-50'}`}>
+                          {conflict ? 'BLOQUEADO (4h)' : 'Disponível'}
+                        </span>
+                        <span className={`text-base font-heading font-bold leading-none ${conflict && 'line-through decoration-red-500/50'}`}>
+                          {format(parseISO(slot.start), 'HH:mm')} - {format(parseISO(slot.end), 'HH:mm')}
+                        </span>
+                        <span className="text-[9px] uppercase mt-1 font-bold tracking-tighter opacity-70">
+                          {conflict ? 'Anti-Spam ativo' : (selectedService ? formatCurrency(selectedService.price) : '')}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </>
             )}
