@@ -13,6 +13,8 @@ type AuthState = {
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
+  updateProfile: (data: Partial<AuthUser>) => Promise<void>;
+  registerPushToken: (token: string) => Promise<void>;
 };
 
 const STORAGE_KEY = 'barberpro-mobile-auth';
@@ -23,7 +25,7 @@ const parseTokenFromResponse = (data: LoginResponse): string | null => {
   return null;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   isHydrated: false,
@@ -83,6 +85,47 @@ export const useAuthStore = create<AuthState>((set) => ({
       const message = err instanceof Error ? err.message : 'Erro ao enviar e-mail de recuperação.';
       set({ isLoading: false, error: message });
       throw err;
+    }
+  },
+
+  updateProfile: async (data: Partial<AuthUser>) => {
+    set({ isLoading: true, error: null });
+    const user = get().user;
+    if (!user?.id) throw new Error('Usuário não autenticado');
+
+    try {
+      const response = await api.patch(`/users/${user.id}`, data);
+      const updatedUser = response.data;
+      
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, user: updatedUser }));
+      }
+
+      set({ user: updatedUser, isLoading: false });
+    } catch (err) {
+      set({ isLoading: false, error: 'Erro ao atualizar perfil' });
+      throw err;
+    }
+  },
+
+  registerPushToken: async (token: string) => {
+    const user = get().user;
+    if (!user?.id) return;
+
+    try {
+      await api.patch(`/users/${user.id}`, { expoPushToken: token });
+      const updatedUser = { ...user, expoPushToken: token };
+      set({ user: updatedUser as AuthUser });
+      
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, user: updatedUser }));
+      }
+    } catch (err) {
+      console.error('Erro ao registrar push token:', err);
     }
   },
 }));

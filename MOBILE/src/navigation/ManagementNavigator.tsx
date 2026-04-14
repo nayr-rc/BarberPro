@@ -4,6 +4,7 @@ import { ServicosScreen } from '../screens/ServicosScreen';
 import { EditarServicoScreen } from '../screens/EditarServicoScreen';
 import { ClientesScreen } from '../screens/ClientesScreen';
 import { DisponibilidadeScreen } from '../screens/DisponibilidadeScreen';
+import { PerfilScreen } from '../screens/PerfilScreen';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
@@ -22,6 +23,7 @@ function ManagementLandingScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.subtitle}>Gerencie seu negócio</Text>
+      <MenuButton title="Meu Perfil" onPress={() => navigation.navigate('Perfil')} />
       <MenuButton title="Meus Serviços" onPress={() => navigation.navigate('Servicos')} />
       <MenuButton title="Meus Clientes" onPress={() => navigation.navigate('Clientes')} />
       <MenuButton title="Minha Disponibilidade" onPress={() => navigation.navigate('Disponibilidade')} />
@@ -64,6 +66,11 @@ export function ManagementNavigator() {
         name="Disponibilidade" 
         component={DisponibilidadeScreen} 
         options={{ title: 'Disponibilidade' }} 
+      />
+      <Stack.Screen 
+        name="Perfil" 
+        component={PerfilScreen} 
+        options={{ title: 'Meu Perfil' }} 
       />
     </Stack.Navigator>
   );

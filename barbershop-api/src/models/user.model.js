@@ -82,6 +82,10 @@ const userSchema = mongoose.Schema(
       type: Object,
       default: null,
     },
+    expoPushToken: {
+      type: String,
+      default: null,
+    },
     workingHours: [
       {
         dayId: Number, // 0-6

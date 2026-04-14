@@ -6,6 +6,8 @@ export type AuthUser = {
   lastName?: string;
   name?: string;
   email: string;
+  contactNumber?: string;
+  expoPushToken?: string;
   role: UserRole;
 };
 

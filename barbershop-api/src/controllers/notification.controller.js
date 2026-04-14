@@ -1,6 +1,7 @@
 const catchAsync = require('../utils/catchAsync');
 const { sendAppointmentEmail } = require('../services/email.service');
 const { sendPushNotification, prepareNotificationPayload } = require('../services/push.service');
+const { sendExpoPushNotification } = require('../services/expoPush.service');
 const { getUserById } = require('../services/user.service');
 
 const sendAppointmentNotificationToUser = catchAsync(async (params) => {
@@ -11,9 +12,16 @@ const sendAppointmentNotificationToUser = catchAsync(async (params) => {
     await sendAppointmentEmail(notificationType, user.email, appointmentDetails, barberDetails, serviceDetails);
   }
 
-  if (user.pushNotificationsEnabled && user.pushSubscription) {
+  if (user.pushNotificationsEnabled) {
     const payload = prepareNotificationPayload(type, appointmentDetails);
-    await sendPushNotification(user.pushSubscription, payload);
+    
+    if (user.pushSubscription) {
+      await sendPushNotification(user.pushSubscription, payload);
+    }
+    
+    if (user.expoPushToken) {
+      await sendExpoPushNotification(user.expoPushToken, payload);
+    }
   }
 });
 
@@ -26,9 +34,16 @@ const sendAppointmentNotificationToBarber = catchAsync(async (params) => {
     await sendAppointmentEmail(notificationType, barber.email, appointmentDetails, barber, serviceDetails, true);
   }
 
-  if (barber.pushNotificationsEnabled && barber.pushSubscription) {
+  if (barber.pushNotificationsEnabled) {
     const payload = prepareNotificationPayload(type, appointmentDetails);
-    await sendPushNotification(barber.pushSubscription, payload);
+    
+    if (barber.pushSubscription) {
+      await sendPushNotification(barber.pushSubscription, payload);
+    }
+    
+    if (barber.expoPushToken) {
+      await sendExpoPushNotification(barber.expoPushToken, payload);
+    }
   }
 });
 
