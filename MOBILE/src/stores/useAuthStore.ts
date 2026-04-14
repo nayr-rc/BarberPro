@@ -12,6 +12,7 @@ type AuthState = {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
 };
 
 const STORAGE_KEY = 'barberpro-mobile-auth';
@@ -71,5 +72,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     await AsyncStorage.removeItem(STORAGE_KEY);
     setAuthToken(null);
     set({ user: null, token: null, error: null });
+  },
+
+  forgotPassword: async (email: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await api.post('/auth/forgot-password', { email });
+      set({ isLoading: false, error: null });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao enviar e-mail de recuperação.';
+      set({ isLoading: false, error: message });
+      throw err;
+    }
   },
 }));

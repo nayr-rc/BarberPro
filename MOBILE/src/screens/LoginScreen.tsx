@@ -56,6 +56,13 @@ export function LoginScreen({ navigation }: Props) {
         {isLoading ? <ActivityIndicator color="#0f172a" /> : <Text style={styles.buttonText}>Entrar</Text>}
       </Pressable>
 
+      <Pressable 
+        onPress={() => navigation.navigate('ForgotPassword' as never)}
+        style={styles.forgotBtn}
+      >
+        <Text style={styles.forgotText}>Esqueceu a senha?</Text>
+      </Pressable>
+
       <Pressable onPress={() => navigation.navigate('ClientRegister')} style={styles.secondaryButton}>
         <Text style={styles.secondaryText}>Quero agendar como cliente</Text>
       </Pressable>
@@ -110,6 +117,15 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     fontWeight: '700',
     fontSize: 16,
+  },
+  forgotBtn: {
+    marginTop: 4,
+    alignItems: 'center',
+    padding: 8,
+  },
+  forgotText: {
+    color: '#94a3b8',
+    fontSize: 14,
   },
   secondaryButton: {
     backgroundColor: '#0f172a',

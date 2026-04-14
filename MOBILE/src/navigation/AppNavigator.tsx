@@ -1,7 +1,8 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { AgendaScreen } from '../screens/AgendaScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
-import { DisponibilidadeScreen } from '../screens/DisponibilidadeScreen';
+import { FinanceiroScreen } from '../screens/FinanceiroScreen';
+import { ManagementNavigator } from './ManagementNavigator';
 
 const Tab = createBottomTabNavigator();
 
@@ -11,14 +12,32 @@ export function AppNavigator() {
       screenOptions={{
         headerStyle: { backgroundColor: '#020617' },
         headerTintColor: '#f8fafc',
+        headerShown: false, // Navigation will be handled by nested stacks headers
         tabBarStyle: { backgroundColor: '#020617', borderTopColor: '#0f172a' },
         tabBarActiveTintColor: '#d4a574',
         tabBarInactiveTintColor: '#64748b',
       }}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Agenda" component={AgendaScreen} />
-      <Tab.Screen name="Disponibilidade" component={DisponibilidadeScreen} />
+      <Tab.Screen 
+        name="DashboardTab" 
+        component={DashboardScreen} 
+        options={{ title: 'Home', headerShown: true }} 
+      />
+      <Tab.Screen 
+        name="AgendaTab" 
+        component={AgendaScreen} 
+        options={{ title: 'Agenda', headerShown: true }} 
+      />
+      <Tab.Screen 
+        name="FinanceiroTab" 
+        component={FinanceiroScreen} 
+        options={{ title: 'Financeiro', headerShown: true }} 
+      />
+      <Tab.Screen 
+        name="GestaoTab" 
+        component={ManagementNavigator} 
+        options={{ title: 'Gestão' }} 
+      />
     </Tab.Navigator>
   );
 }

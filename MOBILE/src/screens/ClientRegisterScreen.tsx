@@ -12,6 +12,31 @@ export function ClientRegisterScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const maskPhone = (value: string) => {
+    const cleaned = value.replace(/\D/g, '');
+    let masked = '';
+    
+    if (cleaned.length > 0) {
+      masked = '(' + cleaned.substring(0, 2);
+    }
+    if (cleaned.length > 2) {
+      masked += ') ' + cleaned.substring(2, 7);
+    }
+    if (cleaned.length > 7) {
+      masked += '-' + cleaned.substring(7, 11);
+    }
+    
+    return masked;
+  };
+
+  const handlePhoneChange = (text: string) => {
+    // Only allow numbers and basic symbols for the mask
+    const cleaned = text.replace(/\D/g, '');
+    if (cleaned.length <= 11) {
+      setPhone(maskPhone(cleaned));
+    }
+  };
+
   const handleContinue = async () => {
     if (!fullName.trim() || !phone.trim()) {
       setError('Informe nome e telefone para continuar.');
@@ -42,10 +67,11 @@ export function ClientRegisterScreen({ navigation }: Props) {
       />
       <TextInput
         value={phone}
-        onChangeText={setPhone}
-        placeholder="Telefone (WhatsApp)"
+        onChangeText={handlePhoneChange}
+        placeholder="Telefone (WhatsApp) (00) 00000-0000"
         placeholderTextColor="#64748b"
         keyboardType="phone-pad"
+        maxLength={15}
         style={styles.input}
       />
       <TextInput
