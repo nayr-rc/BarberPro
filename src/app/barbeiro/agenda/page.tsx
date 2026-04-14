@@ -283,15 +283,26 @@ export default function MinhaAgenda() {
                                     <span className="ml-auto text-emerald-400 font-black">R$ {selectedEvent.valor}</span>
                                 </div>
 
-                                <a href={`https://wa.me/5571999998888`} target="_blank" className="flex items-center justify-between p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl group hover:bg-emerald-500/10 transition-all">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
-                                            <Phone size={18} />
+                                {selectedEvent.telefone ? (
+                                    <a href={`https://wa.me/55${selectedEvent.telefone.replace(/\D/g, '')}`} target="_blank" className="flex items-center justify-between p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl group hover:bg-emerald-500/10 transition-all">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
+                                                <Phone size={18} />
+                                            </div>
+                                            <span className="font-bold text-sm text-emerald-400">{selectedEvent.telefone}</span>
                                         </div>
-                                        <span className="font-bold text-sm text-emerald-400">(71) 99999-8888</span>
+                                        <ExternalLink size={16} className="text-emerald-500 opacity-50" />
+                                    </a>
+                                ) : (
+                                    <div className="flex items-center justify-between p-4 bg-gray-500/5 border border-gray-500/20 rounded-2xl">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-gray-500/10 rounded-lg text-gray-400">
+                                                <Phone size={18} />
+                                            </div>
+                                            <span className="font-bold text-sm text-gray-400">Telefone não informado</span>
+                                        </div>
                                     </div>
-                                    <ExternalLink size={16} className="text-emerald-500 opacity-50" />
-                                </a>
+                                )}
                             </div>
 
                             <div className="flex gap-3 pt-4">
