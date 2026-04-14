@@ -607,9 +607,14 @@ describe('E2E - auth and appointments', () => {
     expect(listRes.body.results[0].user.password).toBeUndefined();
     expect(listRes.body.results[0]).toHaveProperty('serviceType.id', serviceId);
 
-    const payRes = await request(app)
+    await request(app)
       .post(`/v1/appointments/${appointmentId}/pay`)
       .set('Authorization', `Bearer ${adminAuth.tokens.access.token}`)
+      .expect(httpStatus.FORBIDDEN);
+
+    const payRes = await request(app)
+      .post(`/v1/appointments/${appointmentId}/pay`)
+      .set('Authorization', `Bearer ${barberAuth.tokens.access.token}`)
       .expect(httpStatus.OK);
 
     expect(payRes.body).toMatchObject({
