@@ -4,6 +4,7 @@ const config = require('../config/config');
 const logger = require('../config/logger');
 
 const transport = nodemailer.createTransport(config.email.smtp);
+const frontendBaseUrl = String(config.app?.frontendUrl || 'http://localhost:3000').replace(/\/+$/, '');
 /* istanbul ignore next */
 if (config.env !== 'test') {
   transport
@@ -16,6 +17,8 @@ const sendEmail = async (to, subject, html) => {
   const msg = { from: config.email.from, to, subject, html };
   await transport.sendMail(msg);
 };
+
+const createFrontendUrl = (path) => `${frontendBaseUrl}${path.startsWith('/') ? path : `/${path}`}`;
 
 const formatDateTime = (dateTime) => dayjs(dateTime).format('dddd, MMMM D, YYYY h:mm A');
 
@@ -124,12 +127,24 @@ const sendAppointmentEmail = async (type, to, appointmentDetails, recipientDetai
 };
 
 const sendResetPasswordEmail = async (to, token) => {
-  const subject = 'Reset password';
-  const resetPasswordUrl = `https://appointment-management-fe.vercel.app/reset-password?token=${token}`;
-  const text = `Dear user,
-To reset your password, click on this link: ${resetPasswordUrl}
-If you did not request any password resets, then ignore this email.`;
-  await sendEmail(to, subject, text);
+  const subject = 'Recuperacao de senha - BarberPro';
+  const resetPasswordUrl = createFrontendUrl(`/auth/reset-password?token=${encodeURIComponent(token)}`);
+  const html = `
+    <div style="font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6;">
+      <h2 style="margin-bottom: 16px; color: #111827;">Recuperacao de senha</h2>
+      <p>Recebemos uma solicitacao para redefinir a senha da sua conta no BarberPro.</p>
+      <p>Para criar uma nova senha, clique no botao abaixo:</p>
+      <p style="margin: 24px 0;">
+        <a href="${resetPasswordUrl}" style="display: inline-block; padding: 12px 20px; background-color: #AF8447; color: #ffffff; text-decoration: none; border-radius: 999px; font-weight: bold;">
+          Redefinir senha
+        </a>
+      </p>
+      <p>Se preferir, copie e cole este link no navegador:</p>
+      <p style="word-break: break-all;">${resetPasswordUrl}</p>
+      <p>Se voce nao solicitou essa alteracao, pode ignorar este e-mail com seguranca.</p>
+    </div>
+  `;
+  await sendEmail(to, subject, html);
 };
 
 const sendVerificationEmail = async (to, token) => {

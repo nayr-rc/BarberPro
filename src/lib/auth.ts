@@ -12,6 +12,14 @@ export interface RegisterPayload {
   password: string;
 }
 
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface ResetPasswordPayload {
+  password: string;
+}
+
 export interface AuthResponse {
   token: string;
   user: {
@@ -36,4 +44,12 @@ export async function logout(): Promise<void> {
   localStorage.removeItem("barberpro-auth");
   localStorage.removeItem("token");
   localStorage.removeItem("user");
+}
+
+export async function forgotPassword(data: ForgotPasswordPayload): Promise<void> {
+  await apiClient.post("/auth/forgot-password", data);
+}
+
+export async function resetPassword(token: string, data: ResetPasswordPayload): Promise<void> {
+  await apiClient.post(`/auth/reset-password?token=${encodeURIComponent(token)}`, data);
 }

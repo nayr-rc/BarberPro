@@ -90,6 +90,9 @@ apiClient.interceptors.response.use(
     const isAuthRoute =
       url.includes("/auth/login") ||
       url.includes("/auth/register") ||
+      url.includes("/auth/forgot-password") ||
+      url.includes("/auth/reset-password") ||
+      url.includes("/auth/verify-email") ||
       url.includes("/auth/refresh-tokens") ||
       url.includes("/auth/logout");
 

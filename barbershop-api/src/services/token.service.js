@@ -106,6 +106,14 @@ const generateResetPasswordToken = async (email) => {
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'No users found with this email');
   }
+
+  await prisma.token.deleteMany({
+    where: {
+      userId: user.id,
+      type: tokenTypes.RESET_PASSWORD,
+    },
+  });
+
   const expires = moment().add(config.jwt.resetPasswordExpirationMinutes, 'minutes');
   const resetPasswordToken = generateToken(user.id, user.role, expires, tokenTypes.RESET_PASSWORD);
   await saveToken(resetPasswordToken, user.id, expires, tokenTypes.RESET_PASSWORD);
