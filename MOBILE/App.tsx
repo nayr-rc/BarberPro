@@ -9,14 +9,18 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { AuthNavigator } from './src/navigation/AuthNavigator';
 import { useAuthStore } from './src/stores/useAuthStore';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+if (!isExpoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 const isExpoGo = Constants.appOwnership === 'expo';
 
@@ -32,6 +36,11 @@ async function registerForPushNotificationsAsync() {
   }
 
   let token: string | null = null;
+
+  if (isExpoGo) {
+    console.warn('Push notifications are not supported in Expo Go. Use a development build.');
+    return null;
+  }
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
@@ -79,7 +88,7 @@ export default function App() {
   }, [hydrate]);
 
   useEffect(() => {
-    if (token && user?.id) {
+    if (token && user?.id && !isExpoGo) {
       registerForPushNotificationsAsync().then(pushToken => {
         if (pushToken) {
           void registerPushToken(pushToken);
@@ -99,7 +108,7 @@ export default function App() {
         responseListener.current?.remove();
       };
     }
-  }, [token, user?.id, registerPushToken]);
+  }, [token, user?.id, registerPushToken, isExpoGo]);
 
   if (!isHydrated) {
     return (
