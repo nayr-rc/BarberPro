@@ -1,4 +1,5 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Text } from 'react-native';
 import { AgendaScreen } from '../screens/AgendaScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { FinanceiroScreen } from '../screens/FinanceiroScreen';
@@ -13,38 +14,64 @@ type AppTabParamList = {
 
 const Tab = createBottomTabNavigator<AppTabParamList, undefined>();
 
+const icon = (emoji: string, size = 24) => <Text style={{ fontSize: size }}>{emoji}</Text>;
+
 export function AppNavigator() {
   return (
     <Tab.Navigator
       id={undefined}
       screenOptions={{
-        headerStyle: { backgroundColor: '#020617' },
-        headerTintColor: '#f8fafc',
-        headerShown: false, // Navigation will be handled by nested stacks headers
-        tabBarStyle: { backgroundColor: '#020617', borderTopColor: '#0f172a' },
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#040d1a',
+          borderTopColor: 'rgba(255,255,255,0.06)',
+          borderTopWidth: 1,
+          paddingTop: 8,
+          paddingBottom: 6,
+          height: 62,
+        },
         tabBarActiveTintColor: '#d4a574',
-        tabBarInactiveTintColor: '#64748b',
+        tabBarInactiveTintColor: '#475569',
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '800',
+          textTransform: 'uppercase',
+          letterSpacing: 0.5,
+          marginTop: 2,
+        },
       }}
     >
-      <Tab.Screen 
-        name="DashboardTab" 
-        component={DashboardScreen} 
-        options={{ title: 'Home', headerShown: true }} 
+      <Tab.Screen
+        name="DashboardTab"
+        component={DashboardScreen}
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ focused }) => icon(focused ? '🏠' : '🏡'),
+        }}
       />
-      <Tab.Screen 
-        name="AgendaTab" 
-        component={AgendaScreen} 
-        options={{ title: 'Agenda', headerShown: true }} 
+      <Tab.Screen
+        name="AgendaTab"
+        component={AgendaScreen}
+        options={{
+          title: 'Agenda',
+          tabBarIcon: ({ focused }) => icon(focused ? '📅' : '🗓️'),
+        }}
       />
-      <Tab.Screen 
-        name="FinanceiroTab" 
-        component={FinanceiroScreen} 
-        options={{ title: 'Financeiro', headerShown: true }} 
+      <Tab.Screen
+        name="FinanceiroTab"
+        component={FinanceiroScreen}
+        options={{
+          title: 'Financeiro',
+          tabBarIcon: ({ focused }) => icon(focused ? '💰' : '💵'),
+        }}
       />
-      <Tab.Screen 
-        name="GestaoTab" 
-        component={ManagementNavigator} 
-        options={{ title: 'Gestão' }} 
+      <Tab.Screen
+        name="GestaoTab"
+        component={ManagementNavigator}
+        options={{
+          title: 'Gestão',
+          tabBarIcon: ({ focused }) => icon(focused ? '⚙️' : '🔧'),
+        }}
       />
     </Tab.Navigator>
   );

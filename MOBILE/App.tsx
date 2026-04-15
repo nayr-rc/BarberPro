@@ -22,8 +22,6 @@ if (!isExpoGo) {
   });
 }
 
-const isExpoGo = Constants.appOwnership === 'expo';
-
 async function registerForPushNotificationsAsync() {
   if (isExpoGo) {
     console.info('Expo Go detectado: notificacoes push remotas foram desativadas neste ambiente.');

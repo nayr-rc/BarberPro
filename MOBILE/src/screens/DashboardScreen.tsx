@@ -4,6 +4,7 @@ import {
   RefreshControl, Share, Alert, TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useAgendaStore } from '../stores/useAgendaStore';
 import { useGanhosStore } from '../stores/useGanhosStore';
@@ -11,6 +12,7 @@ import { useGanhosStore } from '../stores/useGanhosStore';
 const API_BASE = 'https://barberpro-frontend-n8qp.onrender.com';
 
 export function DashboardScreen() {
+  const navigation = useNavigation<any>();
   const { user, logout } = useAuthStore();
   const { appointments, isLoading: agendaLoading, loadAppointments, markAsAttended, cleanupExpired } = useAgendaStore();
   const { resumo, isLoading: ganhosLoading, carregarResumo } = useGanhosStore();
@@ -166,16 +168,24 @@ export function DashboardScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Atalhos</Text>
           <View style={styles.shortcutsRow}>
-            <View style={styles.shortcutCard}>
+            <TouchableOpacity
+              style={styles.shortcutCard}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate('GestaoTab', { screen: 'Servicos' })}
+            >
               <Text style={styles.shortcutEmoji}>✂️</Text>
               <Text style={styles.shortcutLabel}>Serviços</Text>
               <Text style={styles.shortcutSub}>Preços e duração</Text>
-            </View>
-            <View style={styles.shortcutCard}>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.shortcutCard}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate('GestaoTab', { screen: 'Disponibilidade' })}
+            >
               <Text style={styles.shortcutEmoji}>📆</Text>
               <Text style={styles.shortcutLabel}>Disponibilidade</Text>
               <Text style={styles.shortcutSub}>Horários de trabalho</Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
 
