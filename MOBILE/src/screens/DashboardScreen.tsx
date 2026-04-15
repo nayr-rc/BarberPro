@@ -9,7 +9,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useAgendaStore } from '../stores/useAgendaStore';
 import { useGanhosStore } from '../stores/useGanhosStore';
 
-const API_BASE = 'https://barberpro-frontend-n8qp.onrender.com';
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL || 'https://barberpro-frontend-n8qp.onrender.com';
 
 export function DashboardScreen() {
   const navigation = useNavigation<any>();
@@ -19,7 +19,7 @@ export function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const bookingLink = `${API_BASE}/agendar/${user?.id ?? ''}`;
+  const bookingLink = `${WEB_URL}/agendar/${user?.id ?? ''}`;
 
   const loadAll = useCallback(async () => {
     if (user?.id) {
