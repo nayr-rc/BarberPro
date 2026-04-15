@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(type *)",
+      "Bash(npx *)",
+      "Bash(amp)",
+      "Bash(git pull)"
+    ]
+  },
+  "$version": 3
+}

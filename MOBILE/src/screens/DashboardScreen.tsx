@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  RefreshControl, Share, Alert, TouchableOpacity,
+  RefreshControl, Share, Alert, TouchableOpacity, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -9,7 +9,8 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useAgendaStore } from '../stores/useAgendaStore';
 import { useGanhosStore } from '../stores/useGanhosStore';
 
-const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL || 'https://barberpro-frontend-n8qp.onrender.com';
+// URL do frontend web para agendamento (mesma base usada no web app)
+const WEB_URL = 'https://barberpro-frontend-n8qp.onrender.com';
 
 export function DashboardScreen() {
   const navigation = useNavigation<any>();
@@ -18,8 +19,38 @@ export function DashboardScreen() {
   const { resumo, isLoading: ganhosLoading, carregarResumo } = useGanhosStore();
   const [refreshing, setRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const bookingLink = `${WEB_URL}/agendar/${user?.id ?? ''}`;
+  // Debug: log do usuário para verificar estrutura dos dados
+  useEffect(() => {
+    if (user) {
+      console.log('[DashboardScreen] User data:', JSON.stringify(user, null, 2));
+      console.log('[DashboardScreen] User ID:', user.id);
+    }
+  }, [user]);
+
+  // Obtém o ID do usuário com fallback para diferentes nomes de campo
+  const barberId = user?.id || '';
+  const bookingLink = barberId ? `${WEB_URL}/agendar/${barberId}` : '';
+  const hasBarberId = !!barberId;
+
+  const handleReconnect = async () => {
+    try {
+      Alert.alert(
+        'Reconectar',
+        'Deseja fazer logout e login novamente para atualizar seus dados?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Sim, reconectar',
+            onPress: () => {
+              logout();
+            },
+          },
+        ]
+      );
+    } catch { /* noop */ }
+  };
 
   const loadAll = useCallback(async () => {
     if (user?.id) {
@@ -44,7 +75,17 @@ export function DashboardScreen() {
 
   const handleShareLink = async () => {
     try {
+      await Share.share({ 
+        message: `Agende seu horário comigo pelo BarberPro: ${bookingLink}` 
+      });
+    } catch { /* noop */ }
+  };
+
+  const handleCopyLink = async () => {
+    try {
       await Share.share({ message: bookingLink });
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch { /* noop */ }
   };
 
@@ -88,23 +129,65 @@ export function DashboardScreen() {
               <Text style={styles.subtitle}>Barbeiro Especialista</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.logoutBtn} onPress={() => logout()}>
-            <Text style={styles.logoutIcon}>⏻</Text>
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity 
+              style={[styles.publicPageBtn, !hasBarberId && styles.publicPageBtnDisabled]} 
+              onPress={() => hasBarberId && Linking.openURL(bookingLink)}
+              disabled={!hasBarberId}
+            >
+              <Text style={[styles.publicPageIcon, !hasBarberId && styles.publicPageIconDisabled]}>🌐</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.logoutBtn} onPress={() => logout()}>
+              <Text style={styles.logoutIcon}>⏻</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Link de agendamento */}
         <View style={styles.linkCard}>
-          <View>
-            <Text style={styles.linkTitle}>🔗 <Text style={styles.linkTitleAccent}>Meu Link</Text> de Agendamento</Text>
-            <Text style={styles.linkSub}>Compartilhe com seus clientes</Text>
+          <View style={styles.linkHeader}>
+            <Text style={styles.linkIcon}>🔗</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.linkTitle}>
+                <Text style={styles.linkTitleAccent}>Meu Link</Text> de Agendamento
+              </Text>
+              <Text style={styles.linkSub}>Compartilhe com seus clientes</Text>
+            </View>
           </View>
-          <View style={styles.linkRow}>
-            <Text style={styles.linkText} numberOfLines={1}>{bookingLink}</Text>
-            <TouchableOpacity style={styles.copyBtn} onPress={handleShareLink}>
-              <Text style={styles.copyBtnText}>Compartilhar</Text>
-            </TouchableOpacity>
-          </View>
+          
+          {hasBarberId ? (
+            <>
+              <View style={styles.linkRow}>
+                <Text style={styles.linkText} numberOfLines={1}>{bookingLink}</Text>
+                <TouchableOpacity 
+                  style={[styles.copyBtn, copied && styles.copyBtnSuccess]} 
+                  onPress={handleCopyLink}
+                >
+                  <Text style={[styles.copyBtnText, copied && styles.copyBtnTextSuccess]}>
+                    {copied ? '✓ Copiado' : 'Copiar'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={styles.shareBtn} onPress={handleShareLink}>
+                <Text style={styles.shareBtnText}>📤 Compartilhar Link</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorIcon}>⚠️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.errorText}>
+                  ID do barbeiro não encontrado.
+                </Text>
+                <Text style={styles.errorSubtext}>
+                  Faça logout e login novamente para gerar seu link.
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.reconnectBtn} onPress={handleReconnect}>
+                <Text style={styles.reconnectBtnText}>Reconectar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Métricas */}
@@ -171,7 +254,12 @@ export function DashboardScreen() {
             <TouchableOpacity
               style={styles.shortcutCard}
               activeOpacity={0.7}
-              onPress={() => navigation.navigate('GestaoTab', { screen: 'Servicos' })}
+              onPress={() => {
+                navigation.navigate('GestaoTab', {
+                  screen: 'Servicos',
+                  params: {},
+                });
+              }}
             >
               <Text style={styles.shortcutEmoji}>✂️</Text>
               <Text style={styles.shortcutLabel}>Serviços</Text>
@@ -180,11 +268,46 @@ export function DashboardScreen() {
             <TouchableOpacity
               style={styles.shortcutCard}
               activeOpacity={0.7}
-              onPress={() => navigation.navigate('GestaoTab', { screen: 'Disponibilidade' })}
+              onPress={() => {
+                navigation.navigate('GestaoTab', {
+                  screen: 'Disponibilidade',
+                  params: {},
+                });
+              }}
             >
               <Text style={styles.shortcutEmoji}>📆</Text>
               <Text style={styles.shortcutLabel}>Disponibilidade</Text>
               <Text style={styles.shortcutSub}>Horários de trabalho</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={[styles.shortcutsRow, { marginTop: 12 }]}>
+            <TouchableOpacity
+              style={styles.shortcutCard}
+              activeOpacity={0.7}
+              onPress={() => {
+                navigation.navigate('GestaoTab', {
+                  screen: 'Clientes',
+                  params: {},
+                });
+              }}
+            >
+              <Text style={styles.shortcutEmoji}>👥</Text>
+              <Text style={styles.shortcutLabel}>Clientes</Text>
+              <Text style={styles.shortcutSub}>Histórico e contatos</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.shortcutCard}
+              activeOpacity={0.7}
+              onPress={() => {
+                navigation.navigate('GestaoTab', {
+                  screen: 'Perfil',
+                  params: {},
+                });
+              }}
+            >
+              <Text style={styles.shortcutEmoji}>👤</Text>
+              <Text style={styles.shortcutLabel}>Perfil</Text>
+              <Text style={styles.shortcutSub}>Seus dados</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -202,23 +325,40 @@ const styles = StyleSheet.create({
   // Header
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   avatar: { width: 52, height: 52, borderRadius: 16, backgroundColor: '#10b981', justifyContent: 'center', alignItems: 'center', shadowColor: '#10b981', shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
   avatarText: { color: '#022c22', fontSize: 22, fontWeight: '900' },
   greeting: { fontSize: 22, fontWeight: '700', color: '#f8fafc' },
   greetingName: { color: '#10b981' },
   subtitle: { fontSize: 10, fontWeight: '800', color: '#475569', letterSpacing: 2, textTransform: 'uppercase' },
+  publicPageBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#1e293b', justifyContent: 'center', alignItems: 'center' },
+  publicPageBtnDisabled: { opacity: 0.5 },
+  publicPageIcon: { fontSize: 18, color: '#3b82f6' },
+  publicPageIconDisabled: { opacity: 0.5 },
   logoutBtn: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#1e293b', justifyContent: 'center', alignItems: 'center' },
   logoutIcon: { fontSize: 18, color: '#ef4444' },
 
   // Link card
   linkCard: { marginHorizontal: 20, marginBottom: 20, backgroundColor: 'rgba(16,185,129,0.05)', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)', padding: 20, gap: 12 },
+  linkHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  linkIcon: { fontSize: 24 },
   linkTitle: { fontSize: 16, fontWeight: '900', color: '#f8fafc', textTransform: 'uppercase' },
   linkTitleAccent: { color: '#10b981' },
   linkSub: { fontSize: 12, color: '#64748b', marginTop: 2 },
   linkRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', padding: 4, gap: 8 },
   linkText: { flex: 1, fontSize: 11, fontFamily: 'monospace', color: 'rgba(16,185,129,0.8)', paddingLeft: 8 },
   copyBtn: { backgroundColor: 'rgba(16,185,129,0.15)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 },
+  copyBtnSuccess: { backgroundColor: 'rgba(16,185,129,0.3)' },
   copyBtnText: { color: '#10b981', fontWeight: '800', fontSize: 12 },
+  copyBtnTextSuccess: { color: '#10b981' },
+  shareBtn: { backgroundColor: 'rgba(16,185,129,0.1)', borderWidth: 1, borderColor: 'rgba(16,185,129,0.3)', paddingVertical: 12, borderRadius: 12, alignItems: 'center' },
+  shareBtnText: { color: '#10b981', fontWeight: '800', fontSize: 13, textTransform: 'uppercase', letterSpacing: 1 },
+  errorBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)', borderRadius: 12, padding: 12, gap: 10 },
+  errorIcon: { fontSize: 20 },
+  errorText: { color: '#fca5a5', fontSize: 12, fontWeight: '700', lineHeight: 16 },
+  errorSubtext: { color: '#f87171', fontSize: 11, fontWeight: '500', lineHeight: 14, marginTop: 2 },
+  reconnectBtn: { backgroundColor: 'rgba(239,68,68,0.2)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.4)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  reconnectBtnText: { color: '#fca5a5', fontWeight: '800', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
 
   // Metrics
   metricsRow: { flexDirection: 'row', gap: 12, marginHorizontal: 20, marginBottom: 12 },

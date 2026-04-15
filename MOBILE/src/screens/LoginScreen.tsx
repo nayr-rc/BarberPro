@@ -1,8 +1,11 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, Linking, Alert } from 'react-native';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 import { useAuthStore } from '../stores/useAuthStore';
+
+// URL da página web de agendamento
+const WEB_AGENAMENTO_URL = 'https://barberpro-frontend-n8qp.onrender.com';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -56,15 +59,29 @@ export function LoginScreen({ navigation }: Props) {
         {isLoading ? <ActivityIndicator color="#0f172a" /> : <Text style={styles.buttonText}>Entrar</Text>}
       </Pressable>
 
-      <Pressable 
+      <Pressable
         onPress={() => navigation.navigate('ForgotPassword' as never)}
         style={styles.forgotBtn}
       >
         <Text style={styles.forgotText}>Esqueceu a senha?</Text>
       </Pressable>
 
-      <Pressable onPress={() => navigation.navigate('ClientRegister')} style={styles.secondaryButton}>
-        <Text style={styles.secondaryText}>Quero agendar como cliente</Text>
+      <Pressable 
+        style={styles.secondaryButton} 
+        onPress={async () => {
+          try {
+            const supported = await Linking.canOpenURL(WEB_AGENAMENTO_URL);
+            if (supported) {
+              await Linking.openURL(WEB_AGENAMENTO_URL);
+            } else {
+              Alert.alert('Erro', 'Não foi possível abrir a página de agendamento.');
+            }
+          } catch {
+            Alert.alert('Erro', 'Não foi possível abrir a página de agendamento.');
+          }
+        }}
+      >
+        <Text style={styles.secondaryText}>📅 Quero agendar como cliente (Web)</Text>
       </Pressable>
 
       <Text style={styles.hint}>

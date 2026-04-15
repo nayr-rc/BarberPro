@@ -1,22 +1,43 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, Linking, Alert } from 'react-native';
 import { AuthStackParamList } from '../navigation/AuthNavigator';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Welcome'>;
 
+// URL da página web de agendamento
+const WEB_AGENAMENTO_URL = 'https://barberpro-frontend-n8qp.onrender.com';
+
 export function WelcomeScreen({ navigation }: Props) {
+  const handleClienteAgendar = async () => {
+    try {
+      // Abre a página web de agendamento no navegador do cliente
+      const supported = await Linking.canOpenURL(WEB_AGENAMENTO_URL);
+      if (supported) {
+        await Linking.openURL(WEB_AGENAMENTO_URL);
+      } else {
+        Alert.alert('Erro', 'Não foi possível abrir a página de agendamento.');
+      }
+    } catch {
+      Alert.alert('Erro', 'Não foi possível abrir a página de agendamento.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>BarberPro Mobile</Text>
-      <Text style={styles.subtitle}>Escolha como deseja continuar</Text>
+      <Text style={styles.subtitle}>Painel do barbeiro</Text>
 
       <Pressable style={styles.primaryButton} onPress={() => navigation.navigate('Login')}>
         <Text style={styles.primaryText}>Sou barbeiro (Entrar)</Text>
       </Pressable>
 
-      <Pressable style={styles.secondaryButton} onPress={() => navigation.navigate('ClientRegister')}>
-        <Text style={styles.secondaryText}>Sou cliente (Agendar horário)</Text>
+      <Pressable style={styles.secondaryButton} onPress={handleClienteAgendar}>
+        <Text style={styles.secondaryText}>📅 Sou cliente (Agendar online)</Text>
       </Pressable>
+
+      <Text style={styles.hint}>
+        Clientes serão direcionados para nossa plataforma web de agendamento.
+      </Text>
     </View>
   );
 }
@@ -61,5 +82,12 @@ const styles = StyleSheet.create({
   secondaryText: {
     color: '#f8fafc',
     fontWeight: '600',
+  },
+  hint: {
+    marginTop: 12,
+    color: '#64748b',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });
