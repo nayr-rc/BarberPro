@@ -8,7 +8,16 @@ import { PerfilScreen } from '../screens/PerfilScreen';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-const Stack = createNativeStackNavigator();
+type ManagementStackParamList = {
+  ManagementLanding: undefined;
+  Servicos: undefined;
+  EditarServico: { service?: unknown } | undefined;
+  Clientes: undefined;
+  Disponibilidade: undefined;
+  Perfil: undefined;
+};
+
+const Stack = createNativeStackNavigator<ManagementStackParamList, undefined>();
 
 function ManagementLandingScreen() {
   const navigation = useNavigation<any>();
@@ -34,6 +43,7 @@ function ManagementLandingScreen() {
 export function ManagementNavigator() {
   return (
     <Stack.Navigator
+      id={undefined}
       screenOptions={{
         headerStyle: { backgroundColor: '#020617' },
         headerTintColor: '#f8fafc',

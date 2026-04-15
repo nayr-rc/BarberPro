@@ -4,11 +4,19 @@ import { DashboardScreen } from '../screens/DashboardScreen';
 import { FinanceiroScreen } from '../screens/FinanceiroScreen';
 import { ManagementNavigator } from './ManagementNavigator';
 
-const Tab = createBottomTabNavigator();
+type AppTabParamList = {
+  DashboardTab: undefined;
+  AgendaTab: undefined;
+  FinanceiroTab: undefined;
+  GestaoTab: undefined;
+};
+
+const Tab = createBottomTabNavigator<AppTabParamList, undefined>();
 
 export function AppNavigator() {
   return (
     <Tab.Navigator
+      id={undefined}
       screenOptions={{
         headerStyle: { backgroundColor: '#020617' },
         headerTintColor: '#f8fafc',

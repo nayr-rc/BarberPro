@@ -14,11 +14,12 @@ export type AuthStackParamList = {
   PublicBooking: { profile?: CustomerProfile } | undefined;
 };
 
-const Stack = createNativeStackNavigator<AuthStackParamList>();
+const Stack = createNativeStackNavigator<AuthStackParamList, undefined>();
 
 export function AuthNavigator() {
   return (
     <Stack.Navigator
+      id={undefined}
       initialRouteName="Welcome"
       screenOptions={{
         headerStyle: { backgroundColor: '#020617' },
