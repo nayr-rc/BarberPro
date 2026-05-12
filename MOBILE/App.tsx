@@ -9,7 +9,7 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { AuthNavigator } from './src/navigation/AuthNavigator';
 import { useAuthStore } from './src/stores/useAuthStore';
 
-const isExpoGo = Constants.executionEnvironment === 'storeClient';
+const isExpoGo = Constants.appOwnership === 'expo';
 
 if (!isExpoGo) {
   Notifications.setNotificationHandler({
